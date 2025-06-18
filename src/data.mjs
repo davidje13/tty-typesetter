@@ -2,6 +2,7 @@ import { merge, unpack } from './unpack.mjs';
 import { data as cam16_0 } from '../data/cam-16.0.mjs';
 import { data as linux } from '../data/tty-linux--.mjs';
 import { data as xterm } from '../data/tty-xterm-256color--.mjs';
+import { data as kitty } from '../data/kitty.mjs';
 import { data as vscode_1_100_3 } from '../data/tty-xterm-256color-vscode-1.100.3.mjs';
 import { data as apple455_1 } from '../data/tty-xterm-256color-Apple_Terminal-455.1.mjs';
 
@@ -15,6 +16,11 @@ const sources = [
 		_table: vscode_1_100_3,
 		_fontSequences: false,
 		_require: [['TERM_PROGRAM', 'vscode']],
+	},
+	{
+		_table: kitty,
+		_fontSequences: false, // has full support for clusters
+		_require: [['TERM', 'xterm-kitty']],
 	},
 	{
 		_table: xterm,

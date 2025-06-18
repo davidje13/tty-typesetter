@@ -46,7 +46,9 @@ for (const datFile of dirListing) {
 	if (!dirListing.includes(datFile.replace(/\.dat$/, '.mjs'))) {
 		continue; // file was not converted to mjs - probably skipped as a duplicate
 	}
-	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
+	const data = (
+		await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' })
+	).trim();
 	const table = unpack(data);
 	files.push({
 		name: datFile.replace(/\.dat$/, ''),

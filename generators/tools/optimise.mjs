@@ -21,7 +21,9 @@ for (const datFile of (await readdir(DATA_DIR)).sort()) {
 	if (!datFile.endsWith('.dat')) {
 		continue;
 	}
-	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
+	const data = (
+		await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' })
+	).trim();
 	const outFile = datFile.replace(/\.dat$/, '.mjs');
 	if (observedData.has(data)) {
 		console.log(`  ${datFile}: duplicate of ${observedData.get(data).datFile}`);
