@@ -5,12 +5,20 @@ import { Compressor } from './tools/Compressor.mjs';
 import { codepointCount, UNSUPPORTED } from './tools/constants.mjs';
 import { explodeSequenceKeys } from './tools/read-strings.mjs';
 
+const flags = process.argv.slice(2);
+
 if (!process.stderr.isTTY || !process.stdin.isTTY) {
 	throw new Error('Must be connected to TTY to measure');
 }
 
 const CURSOR_POS = /\x1B\[(\d+);(\d+)R/g;
 const readStdin = stdinReader();
+
+const batchFlagPos = flags.indexOf('--batch');
+const batchSize =
+	batchFlagPos === -1
+		? 0x100
+		: Math.max(Number.parseInt(flags[batchFlagPos + 1]), 1);
 
 process.stderr.write('\n');
 
@@ -47,13 +55,13 @@ function beforeBatch() {
 }
 
 const showProgress = (label) => (frac) =>
-	process.stderr.write(`\n${label}: ${(frac * 100).toFixed(2)}%\x1B[A`);
+	process.stderr.write(`\n${label}: ${(frac * 100).toFixed(1)}%\x1B[A`);
 
 const r = [];
 for await (const w of batched(
 	0,
 	codepointCount,
-	0x400,
+	batchSize,
 	measure,
 	beforeBatch,
 	showProgress('codepoints (1/2)'),
@@ -69,7 +77,7 @@ if (sequenceSupport === 'full') {
 	for await (const { w, i } of batched(
 		0,
 		seqs.length,
-		0x400,
+		batchSize,
 		(i) =>
 			measureStr(seqs[i].map((i) => String.fromCodePoint(i)).join('')).then(
 				(w) => ({ w, i }),
@@ -90,8 +98,7 @@ if (sequenceSupport === 'full') {
 process.stderr.write('\n\x1B[2KDone.\n\n');
 process.stdin.setRawMode(false);
 
-const infoTarget =
-	process.argv[2] === '--raw' ? process.stderr : process.stdout;
+const infoTarget = flags.includes('--raw') ? process.stderr : process.stdout;
 for (const key of [
 	'TERM',
 	'TERM_PROGRAM',

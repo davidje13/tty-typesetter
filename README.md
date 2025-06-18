@@ -225,6 +225,14 @@ width of the terminal. Depending on the terminal, this may take a few minutes. A
 progress indicator will be displayed for each of the two stages, then the
 results will be printed.
 
+If the command fails (e.g. gets stuck at 0%), try running it with a smaller
+batch size specified (the default is 256; smaller numbers will be slower but are
+more likely to be handled by the terminal):
+
+```sh
+npx tty-typesetter --batch 8
+```
+
 The output includes a selection of environment variables which may be used to
 identify the terminal, followed by the character width data in a compressed
 form. Specifically, the character width data is encoded as a repeating sequence
