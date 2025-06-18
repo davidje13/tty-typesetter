@@ -8,6 +8,7 @@ import { data as urxvt } from '../data/tty-rxvt-unicode--.mjs';
 import { data as vscode_1_100_3 } from '../data/tty-xterm-256color-vscode-1.100.3.mjs';
 import { data as apple455_1 } from '../data/tty-xterm-256color-Apple_Terminal-455.1.mjs';
 import { data as intellij } from '../data/tty-jediterm-2023.3.8.mjs';
+import { data as eterm } from '../data/tty-eterm.mjs';
 
 const sources = [
 	{
@@ -39,6 +40,11 @@ const sources = [
 		_table: lxterminal,
 		_fontSequences: false,
 		_require: [['TERM', 'xterm-256color']], // TODO: find a better identifier
+	},
+	{
+		_table: eterm,
+		_fontSequences: false, // TODO: missing emoji are actually rendered as 2.5 cells wide
+		_require: [['TERM', 'eterm-color']],
 	},
 	{ _table: xterm, _fontSequences: false, _require: [['TERM', 'xterm']] },
 	{ _table: linux, _fontSequences: false, _require: [['TERM', 'linux']] },

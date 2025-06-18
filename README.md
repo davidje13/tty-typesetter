@@ -163,7 +163,9 @@ This project currently has data for:
 - LXTerminal
 - rxvt-unicode
 - xterm
+- eterm
 - kitty
+
 - Unicode 16 following the rules originally defined by Markus Kuhn for `wcwidth`
   (used as a fallback if the terminal is not recognised)
 
