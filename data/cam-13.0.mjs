@@ -1,0 +1,3 @@
+import { data as base } from "./cam-12.1.mjs";
+
+export const data = ["000002028l0028n202o1002o2205a7005a9409tn009us20x7w00x7x21hgr01hgt21i3301i3421jjv31jjx21jjy31jjz21jk301jk4220o4320o5420og020oi4260j326dy426f4026fd42rbq02rbs42rcr02rct42rrg32rsr42rss32rt242rt302ruh42rvn02rws42s1g02s1h42s1v02s1z42s2e32s2x42s3432s3b42s3k32s3n42s4002s474qa9e1qa9w4qaa61qaab4qaad0qacw4qgcg1qgcm4qgco1qgcq4qgcs0qgct4qgg70qggj4qgwa0qgwm4qhat", ...base];

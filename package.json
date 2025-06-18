@@ -1,0 +1,43 @@
+{
+	"name": "tty-typesetter",
+	"version": "0.1.0",
+	"description": "terminal typesetting with real world measurements of character advance widths",
+	"private": true,
+	"main": "index.mjs",
+	"bin": "bin.mjs",
+	"types": "index.d.ts",
+	"scripts": {
+		"format": "prettier --write .",
+		"test": "lean-test src generators",
+		"build": "rm -rf build || true; rollup --config rollup.config.mjs && chmod +x build/bin.mjs && cp README.md LICENSE src/index.d.ts build && grep -v private < package.json > build/package.json && cd build && npm pack && cd - && mv build/*.tgz package.tgz",
+		"dopublish": "npm run build --silent && npm publish package.tgz"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/davidje13/tty-typesetter.git"
+	},
+	"keywords": [
+		"wcwidth",
+		"terminal",
+		"shell",
+		"tty",
+		"cli",
+		"character",
+		"advance",
+		"measure",
+		"typeset",
+		"typesetter"
+	],
+	"author": "David Evans",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/davidje13/tty-typesetter/issues"
+	},
+	"homepage": "https://github.com/davidje13/tty-typesetter#readme",
+	"devDependencies": {
+		"@rollup/plugin-terser": "0.4.x",
+		"lean-test": "2.x",
+		"prettier": "3.5.3",
+		"rollup": "4.x"
+	}
+}

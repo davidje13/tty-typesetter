@@ -1,0 +1,9 @@
+{
+	"singleQuote": true,
+	"trailingComma": "all",
+	"useTabs": true,
+	"overrides": [
+		{ "files": "*.md", "options": { "proseWrap": "always" } },
+		{ "files": "*.json", "options": { "trailingComma": "none" } }
+	]
+}
