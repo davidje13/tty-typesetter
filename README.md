@@ -53,7 +53,7 @@ In VSCode 1.100 (which does not support Unicode 16), this prints:
 
 ![Screenshot of VSCode 1.100 showing overlapping characters without tty-typesetter](screenshots/vscode100.png)
 
-Whereas in Apple Terminal (which does support Unicode 16), it prints:
+Whereas in Apple's Terminal.app (which does support Unicode 16), it prints:
 
 ![Screenshot of Apple Terminal showing the same output with and without tty-typesetter](screenshots/apple.png)
 
@@ -151,6 +151,17 @@ for (const line of typesetter.typeset(message, {
 
 Alternatively if you just want to indent the lines and allow their tabstops to
 be indented with them, you can omit `beginColumn`.
+
+## Supported terminals
+
+This project currently has data for:
+
+- Linux's base terminal
+- macOS's Terminal.app (Apple_Terminal)
+- VSCode's built-in terminal
+- Raspberry Pi OS's LXTerminal
+- Unicode 16 following the rules originally defined by Markus Kuhn for `wcwidth`
+  (used as a fallback if the terminal is not recognised)
 
 ## Known limitations
 
