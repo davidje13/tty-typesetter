@@ -2,7 +2,7 @@ import { merge, unpack } from './unpack.mjs';
 import { data as cam16_0 } from '../data/cam-16.0.mjs';
 import { data as linux } from '../data/tty-linux--.mjs';
 import { data as xterm } from '../data/tty-xterm--.mjs';
-import { data as xterm256 } from '../data/tty-xterm-256color--.mjs';
+import { data as lxterminal } from '../data/tty-lxterminal.mjs';
 import { data as kitty } from '../data/kitty.mjs';
 import { data as urxvt } from '../data/tty-rxvt-unicode--.mjs';
 import { data as vscode_1_100_3 } from '../data/tty-xterm-256color-vscode-1.100.3.mjs';
@@ -36,9 +36,9 @@ const sources = [
 		_require: [['TERM', 'rxvt-unicode']],
 	},
 	{
-		_table: xterm256,
+		_table: lxterminal,
 		_fontSequences: false,
-		_require: [['TERM', 'xterm-256color']],
+		_require: [['TERM', 'xterm-256color']], // TODO: find a better identifier
 	},
 	{ _table: xterm, _fontSequences: false, _require: [['TERM', 'xterm']] },
 	{ _table: linux, _fontSequences: false, _require: [['TERM', 'linux']] },
