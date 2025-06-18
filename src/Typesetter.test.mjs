@@ -143,6 +143,22 @@ describe('Typesetter', () => {
 			expect([...actual], equals(['f\n', 'o\n', 'o\n', 'b\n', 'a\n', 'r']));
 		});
 
+		it('uses basic line wrapping if niceWrap is false', () => {
+			const ts = new Typesetter({});
+			const actual = ts.typeset(
+				'this is my very long message which needs to wrap.',
+				{ columnLimit: 10, niceWrap: false },
+			);
+			const expected = [
+				'this is my\n',
+				' very long\n',
+				' message w\n',
+				'hich needs\n',
+				' to wrap.',
+			];
+			expect([...actual], equals(expected));
+		});
+
 		it('replaces tabs with spaces', () => {
 			const ts = new Typesetter({});
 			const actual = ts.typeset('a\tbcdefghi\tc\t\td', { columnLimit: 100 });
@@ -162,6 +178,15 @@ describe('Typesetter', () => {
 			const ts = new Typesetter({});
 			const actual = ts.typeset('a\t\t\t\t  \tb', { columnLimit: 10 });
 			expect([...actual], equals(['a       \n', 'b']));
+		});
+
+		it('includes wrapped tabs if niceWrap is false', () => {
+			const ts = new Typesetter({});
+			const actual = ts.typeset('a\t\t\t\t  \tb', {
+				columnLimit: 10,
+				niceWrap: false,
+			});
+			expect([...actual], equals(['a       \n', '        \n', '        b']));
 		});
 
 		it('adds spaces after unsupported characters', () => {

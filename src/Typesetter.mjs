@@ -124,7 +124,7 @@ export class Typesetter {
 							_softHyphen: false,
 						};
 					}
-					if (wrap._pos > 0) {
+					if (niceWrap && wrap._pos > 0) {
 						const ln = currentLine.splice(0, wrap._pos);
 						if (wrap._softHyphen) {
 							ln.push('\u00ad');
@@ -133,6 +133,9 @@ export class Typesetter {
 						yield ln.join('');
 						column += wrapColumn - wrap._col;
 						wrap = WRAP_NONE;
+						while (currentLine[0]?.startsWith(' ')) {
+							currentLine.shift();
+						}
 					} else {
 						currentLine.push('\n');
 						yield currentLine.join('');
@@ -140,15 +143,14 @@ export class Typesetter {
 						column = wrapColumn;
 						wrap = WRAP_NONE;
 					}
-					while (currentLine[0]?.startsWith(' ')) {
-						currentLine.shift();
-					}
-					if (!currentLine.length) {
-						swallowSpace = true;
-					}
-					if (isSpace(codepoint)) {
-						lastJoiner = false;
-						continue;
+					if (niceWrap) {
+						if (!currentLine.length) {
+							swallowSpace = true;
+							if (isSpace(codepoint)) {
+								lastJoiner = false;
+								continue;
+							}
+						}
 					}
 				}
 				if (codepoint === 0x0020) {
@@ -178,7 +180,9 @@ export class Typesetter {
 					currentLine.length = 0;
 					column = wrapColumn;
 					wrap = WRAP_NONE;
-					swallowSpace = true;
+					if (niceWrap) {
+						swallowSpace = true;
+					}
 				} else {
 					currentLine.push(' '.repeat(next - column));
 					column = next;
