@@ -4,6 +4,7 @@ import { data as linux } from '../data/tty-linux--.mjs';
 import { data as xterm } from '../data/tty-xterm--.mjs';
 import { data as xterm256 } from '../data/tty-xterm-256color--.mjs';
 import { data as kitty } from '../data/kitty.mjs';
+import { data as urxvt } from '../data/tty-rxvt-unicode--.mjs';
 import { data as vscode_1_100_3 } from '../data/tty-xterm-256color-vscode-1.100.3.mjs';
 import { data as apple455_1 } from '../data/tty-xterm-256color-Apple_Terminal-455.1.mjs';
 import { data as intellij } from '../data/tty-jediterm-2023.3.8.mjs';
@@ -28,6 +29,11 @@ const sources = [
 		_table: kitty,
 		_fontSequences: false, // has full support for clusters
 		_require: [['TERM', 'xterm-kitty']],
+	},
+	{
+		_table: urxvt,
+		_fontSequences: false,
+		_require: [['TERM', 'rxvt-unicode']],
 	},
 	{
 		_table: xterm256,
