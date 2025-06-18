@@ -116,22 +116,17 @@ describe('Typesetter', () => {
 			const input = 'Super\xadcali\xadfragilistic\xadexpiali\xaddocious';
 			expect(
 				[...ts.typeset(input, { columnLimit: 12 })],
-				equals([
-					'Supercali\xad\n',
-					'fragilistic\xad\n',
-					'expiali\xad\n',
-					'docious',
-				]),
+				equals(['Supercali-\n', 'fragilistic-\n', 'expiali-\n', 'docious']),
 			);
 
 			expect(
 				[...ts.typeset(input, { columnLimit: 8 })],
 				equals([
-					'Super\xad\n',
-					'cali\xad\n',
+					'Super-\n',
+					'cali-\n',
 					'fragilis\n',
-					'tic\xad\n',
-					'expiali\xad\n',
+					'tic-\n',
+					'expiali-\n',
 					'docious',
 				]),
 			);

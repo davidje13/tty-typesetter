@@ -103,6 +103,7 @@ for (const key of [
 	'TERM',
 	'TERM_PROGRAM',
 	'TERM_PROGRAM_VERSION',
+	'TERMINAL_EMULATOR',
 	'VTE_VERSION',
 	'LANG',
 ]) {

@@ -5,12 +5,18 @@ import { data as xterm } from '../data/tty-xterm-256color--.mjs';
 import { data as kitty } from '../data/kitty.mjs';
 import { data as vscode_1_100_3 } from '../data/tty-xterm-256color-vscode-1.100.3.mjs';
 import { data as apple455_1 } from '../data/tty-xterm-256color-Apple_Terminal-455.1.mjs';
+import { data as intellij } from '../data/tty-jediterm-2023.3.8.mjs';
 
 const sources = [
 	{
 		_table: apple455_1,
 		_fontSequences: true,
 		_require: [['TERM_PROGRAM', 'Apple_Terminal']],
+	},
+	{
+		_table: intellij,
+		_fontSequences: false,
+		_require: [['TERMINAL_EMULATOR', 'JetBrains-JediTerm']],
 	},
 	{
 		_table: vscode_1_100_3,

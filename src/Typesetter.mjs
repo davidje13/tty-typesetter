@@ -110,6 +110,9 @@ export class Typesetter {
 				}
 			}
 			let cw = this.measureCodepointStateful(codepoint, state);
+			if (codepoint === 0x00ad && softHyphens && !state._isAnsi) {
+				cw = 1; // force display if we are using soft hyphens - we will display a regular hyphen
+			}
 			if (cw > 0) {
 				let c = String.fromCodePoint(codepoint);
 				if (padUnsupportedCharacters && cw === 1 && targetW(codepoint) === 2) {
@@ -127,7 +130,7 @@ export class Typesetter {
 					if (niceWrap && wrap._pos > 0) {
 						const ln = currentLine.splice(0, wrap._pos);
 						if (wrap._softHyphen) {
-							ln.push('\u00ad');
+							ln.push('-');
 						}
 						ln.push('\n');
 						yield ln.join('');

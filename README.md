@@ -156,9 +156,10 @@ be indented with them, you can omit `beginColumn`.
 
 This project currently has data for:
 
-- Linux's base terminal
+- The Linux TTY
 - macOS's Terminal.app (Apple_Terminal)
 - VSCode's built-in terminal (and dev container terminal)
+- IntelliJ's editor's built-in terminal (JetBrains-JediTerm)
 - Raspberry Pi OS's LXTerminal
 - kitty
 - Unicode 16 following the rules originally defined by Markus Kuhn for `wcwidth`
