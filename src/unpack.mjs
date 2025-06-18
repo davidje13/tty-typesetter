@@ -2,8 +2,18 @@ import { INHERIT } from '../generators/tools/constants.mjs';
 
 export function unpack(compressed) {
 	const data = [];
+	if (compressed.length % 5 !== 0) {
+		throw new Error('invalid data');
+	}
+	let previous = -1;
 	for (const [, w, p] of compressed.matchAll(/(.)(.{4})/g)) {
-		data.push([Number.parseInt(p, 36), Number.parseInt(w) - 2]);
+		const begin = Number.parseInt(p, 36);
+		const width = Number.parseInt(w, 10) - 2;
+		if (!(begin > previous) || Number.isNaN(width)) {
+			throw new Error('invalid data');
+		}
+		data.push([begin, width]);
+		previous = begin;
 	}
 	if (!data.length) {
 		throw new Error('no data found');

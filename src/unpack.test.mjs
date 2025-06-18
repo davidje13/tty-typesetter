@@ -12,6 +12,16 @@ describe('unpack', () => {
 			]),
 		);
 	});
+
+	it('throws if given no data', () => {
+		expect(() => unpack(''), throws());
+	});
+
+	it('throws if given invalid data', () => {
+		expect(() => unpack('a0000'), throws());
+		expect(() => unpack('0~000'), throws());
+		expect(() => unpack('0000'), throws());
+	});
 });
 
 describe('merge', () => {
