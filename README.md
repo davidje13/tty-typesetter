@@ -158,7 +158,7 @@ This project currently has data for:
 
 - Linux's base terminal
 - macOS's Terminal.app (Apple_Terminal)
-- VSCode's built-in terminal
+- VSCode's built-in terminal (and dev container terminal)
 - Raspberry Pi OS's LXTerminal
 - kitty
 - Unicode 16 following the rules originally defined by Markus Kuhn for `wcwidth`
