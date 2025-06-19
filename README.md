@@ -159,7 +159,7 @@ This project currently has data for:
 - The Linux TTY
 - macOS's Terminal.app (Apple_Terminal)
 - VSCode's built-in terminal (and dev container terminal)
-- IntelliJ's editor's built-in terminal (JetBrains-JediTerm)
+- JetBrains' editor's built-in terminal (JetBrains-JediTerm)
 - LXTerminal
 - Warp
 - kitty
@@ -168,6 +168,9 @@ This project currently has data for:
 - eterm
 - Unicode 16, following the rules originally defined by Markus Kuhn for
   `wcwidth` (used as a fallback if the terminal is not recognised)
+
+You can find a summary of the behaviours of these terminals
+[here](./analysis/summary.md).
 
 ## Known limitations
 

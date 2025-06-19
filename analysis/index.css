@@ -12,7 +12,7 @@ table {
 td {
 	border: 1px solid #808080;
 	padding: 5px 8px;
-	text-align: center;
+	text-align: left;
 	font-family: monospace;
 	vertical-align: top;
 	white-space: nowrap;
@@ -25,10 +25,6 @@ thead {
 	box-shadow:
 		0 -2px 0 2px white,
 		0 1px 0 #808080;
-}
-
-td:first-child {
-	text-align: left;
 }
 
 th {
@@ -71,22 +67,12 @@ th > div {
 	color: white;
 }
 
-.codepoints td:nth-last-child(4) {
-	text-align: left;
-}
-
-.codepoints td:nth-last-child(3) {
-	text-align: left;
-}
-
 td:nth-last-child(2) {
 	font: 0.9em sans-serif;
-	text-align: left;
 	white-space: wrap;
 }
 
 td:last-child {
-	text-align: left;
 	white-space: wrap;
 }
 

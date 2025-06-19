@@ -5,17 +5,21 @@ import { dirname, join } from 'node:path';
 import { merge, unpack } from '../../src/unpack.mjs';
 import { strings } from '../../data/strings.mjs';
 import { notesTable } from '../notes.mjs';
-import { readNextChangeCharacter, readOrdered } from './readers.mjs';
+import {
+	readNextChangeCharacter,
+	readOrdered,
+	readRandomAccess,
+} from './readers.mjs';
 import { loadUnicodeRangeData } from './unicode-data.mjs';
 import { explodeSequenceKey, printSequenceKey } from './read-strings.mjs';
 import { toLink, toTable } from './html.mjs';
-import { codepointCount, INHERIT, UNSUPPORTED } from './constants.mjs';
+import { codepointCount, IGNORE, INHERIT, UNSUPPORTED } from './constants.mjs';
 
 const SELF_DIR = dirname(new URL(import.meta.url).pathname);
 const DATA_DIR = join(SELF_DIR, '..', '..', 'data');
 const ANALYSIS_DIR = join(SELF_DIR, '..', '..', 'analysis');
 
-const unicodeVersion = '17.0.0';
+const unicodeVersion = '16.0.0';
 const shortUV = /^(\d+\.\d+)\..*$/.exec(unicodeVersion)[1];
 
 // https://unicode.org/reports/tr18/#General_Category_Property
@@ -31,7 +35,7 @@ const uAgeTable = await loadUnicodeRangeData(
 	`https://www.unicode.org/Public/${unicodeVersion}/ucd/DerivedAge.txt`,
 );
 
-const uGeneralCategory = readOrdered(uGeneralCategoryTable);
+const uGeneralCategory = readRandomAccess(uGeneralCategoryTable);
 const uBlock = readOrdered(uBlockTable);
 const uAge = readOrdered(uAgeTable);
 
@@ -47,12 +51,23 @@ for (const datFile of dirListing) {
 		continue; // file was not converted to mjs - probably skipped as a duplicate
 	}
 	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
-	const packedTable = data.trim().split('\n').pop();
+	const lines = data.trim().split('\n');
+	const packedTable = lines.pop();
+	const keyValues = new Map(
+		lines.map((ln) => {
+			const p = ln.indexOf('=');
+			return [ln.substring(0, p), ln.substring(p + 1)];
+		}),
+	);
 	const table = unpack(packedTable);
 	files.push({
-		name: datFile.replace(/\.dat$/, ''),
+		isTTY: datFile.startsWith('tty-'),
+		name: keyValues.get('name') || datFile.replace(/\.dat$/, ''),
+		keyValues,
 		w: readOrdered(table),
 		table,
+		codepointCounts: new Map(),
+		sequenceCount: 0,
 	});
 	if (datFile === `cam-${shortUV}.dat`) {
 		canonicalTable = table;
@@ -66,6 +81,8 @@ if (!canonicalTable) {
 
 const wExpected = readOrdered(merge([notesTable, canonicalTable]));
 const notes = readOrdered(notesTable, 2);
+const codepointTotals = new Map();
+let sequenceTotal = 0;
 
 const next = makeNextFn(...files.map((f) => f.table), notesTable, uBlockTable);
 
@@ -86,10 +103,10 @@ const codepointTable = {
 	tbody: [],
 };
 
-const mergeCodepointCells = cellMerger();
 for (let char = 0x000000; char < codepointCount; ) {
 	const nextChar = next(char);
 	const rangeEnd = Math.min(nextChar, codepointCount) - 1;
+	const count = rangeEnd + 1 - char;
 	const generalCats = new Set();
 	const ages = new Set();
 	let deprecated = true;
@@ -103,7 +120,8 @@ for (let char = 0x000000; char < codepointCount; ) {
 	ages.delete('Unassigned');
 	const unassigned = generalCats.has('Cn');
 	const privateUse = generalCats.has('Co');
-	const expectedWidth = unassigned ? INHERIT : wExpected(char);
+	const expectedWidth = unassigned ? IGNORE : wExpected(char);
+	inc(codepointTotals, expectedWidth, count);
 	let note = notes(char);
 	if (!note) {
 		if (deprecated) {
@@ -116,47 +134,50 @@ for (let char = 0x000000; char < codepointCount; ) {
 			note = [...generalCats].join(', ');
 		}
 	}
-	const showCharacters = !unassigned && !privateUse;
+	const fileWidths = [];
+	for (const file of files) {
+		const width = file.w(char);
+		// explicitly allow wide characters to be 3 cells wide,
+		// since some terminals do this and it is probably better for some characters
+		if (width === expectedWidth || (width === 3 && expectedWidth === 2)) {
+			inc(file.codepointCounts, width, count);
+		}
+		fileWidths.push(width);
+	}
 	const isCombining =
 		generalCats.has('Mn') ||
 		generalCats.has('Mc') ||
 		generalCats.has('Me') ||
 		generalCats.has('Cf');
-	let blockLink = '';
-	const block = uBlock(char);
-	if (block[2]) {
-		blockLink = toLink(
-			block[2] ?? '',
-			`https://www.unicode.org/charts/PDF/U${block[0].toString(16).padStart(4, '0').toUpperCase()}.pdf`,
-		);
-	}
-	const cells = [
-		{ content: printCodepointRange(char, rangeEnd) },
-		...files.map(({ w }) => {
-			const width = w(char);
-			return {
+	codepointTable.tbody.push({
+		class: unassigned ? 'x' : '',
+		nomerge: unassigned,
+		cells: [
+			{ nomerge: true, content: printCodepointRange(char, rangeEnd) },
+			...fileWidths.map((width) => ({
 				content: width,
 				class:
 					width === expectedWidth
 						? 'y'
-						: expectedWidth > -2
+						: expectedWidth !== IGNORE
 							? 'n'
 							: `w${width}`,
-			};
-		}),
-		{ raw: blockLink },
-		{ content: printVersionRange(ages) },
-		{ content: note },
-		{
-			content: showCharacters
-				? printRangeSample(char, rangeEnd, isCombining)
-				: '',
-		},
-	];
-	mergeCodepointCells(cells, unassigned);
-	codepointTable.tbody.push({ class: unassigned ? 'x' : '', cells });
+			})),
+			{ raw: makeBlockLink(char) },
+			{ content: printVersionRange(ages) },
+			{ nomerge: true, content: note },
+			{
+				nomerge: true,
+				content:
+					!unassigned && !privateUse
+						? printRangeSample(char, rangeEnd, isCombining)
+						: '',
+			},
+		],
+	});
 	char = nextChar;
 }
+mergeCells(codepointTable.tbody);
 
 const sequenceTable = {
 	class: 'sequences',
@@ -175,7 +196,6 @@ const sequenceTable = {
 
 let i = codepointCount;
 let n = codepointCount;
-const mergeSequenceCells = cellMerger();
 for (const seq of strings.split(' ')) {
 	const entries = explodeSequenceKey(seq);
 	const name = printSequenceKey(seq);
@@ -183,32 +203,48 @@ for (const seq of strings.split(' ')) {
 		const nextI = next(i);
 		const rangeBegin = i - n;
 		const rangeEnd = Math.min(nextI - n, entries.length) - 1;
+		const count = rangeEnd + 1 - rangeBegin;
 		const expectedWidth = wExpected(i);
 		const unassigned = expectedWidth === UNSUPPORTED; // also includes sequences which do not change the width, but that's fine for this use
-		const cells = [
-			{ content: name },
-			...files.map(({ w }) => {
-				const width = w(i);
-				return { content: width, class: width === 2 ? 'y' : `w${width}` };
-			}),
-			{ content: notes(i) ?? '' },
-			{
-				content: unassigned
-					? codepointsToString(entries[rangeBegin])
-					: entries
-							.slice(rangeBegin, rangeEnd + 1)
-							.map(codepointsToString)
-							.join(' '),
-			},
-		];
-		mergeSequenceCells(cells, unassigned);
-		sequenceTable.tbody.push({ class: unassigned ? 'x' : '', cells });
+		if (!unassigned) {
+			sequenceTotal += count;
+		}
+		const fileWidths = [];
+		for (const file of files) {
+			const width = file.w(i);
+			if (width === 2 && !unassigned) {
+				file.sequenceCount += count;
+			}
+			fileWidths.push(width);
+		}
+		sequenceTable.tbody.push({
+			class: unassigned ? 'x' : '',
+			nomerge: unassigned,
+			cells: [
+				{ content: name },
+				...fileWidths.map((width) => ({
+					content: width,
+					class: !unassigned && width === expectedWidth ? 'y' : `w${width}`,
+				})),
+				{ nomerge: true, content: notes(i) ?? '' },
+				{
+					nomerge: true,
+					content: unassigned
+						? codepointsToString(entries[rangeBegin])
+						: entries
+								.slice(rangeBegin, rangeEnd + 1)
+								.map(codepointsToString)
+								.join(' '),
+				},
+			],
+		});
 		i = nextI;
 	}
 	n += entries.length;
 }
+mergeCells(sequenceTable.tbody);
 
-const html = `<!DOCTYPE html>
+const fullPage = `<!DOCTYPE html>
 <html>
 <head>
 <title>Terminal character width analysis</title>
@@ -223,10 +259,70 @@ ${toTable(sequenceTable)}
 </html>
 `;
 
-await writeFile(join(ANALYSIS_DIR, 'index.html'), html, {
+await writeFile(join(ANALYSIS_DIR, 'index.html'), fullPage, {
 	encoding: 'utf-8',
 	mode: 0o644,
 });
+
+const summary = `# Terminal summary
+
+Different terminals have different levels of support for special characters.
+This page compares how terminals perform relative to the rules from
+[Unicode Technical Report 11](https://www.unicode.org/reports/tr11/), applied
+to Unicode ${unicodeVersion}'s character set data (following the convention
+from \`wcwidth\` of assigning character widths of 1 for Ambiguous and Neutral
+characters, and 0 to format characters, non-spacing combining marks, and
+enclosing marks).
+
+Note that terminals which score low here are not necessarily "bad"; zero-width
+and joining characters may be intentionally displayed to aid visibility.
+
+| Terminal | Control Code Support | Zero Width / Combiner Support | Narrow Character Support | Wide Character Support | Emoji Sequence Support |
+| -------- | -------------------: | ----------------------------: | -----------------------: | ---------------------: | ---------------------: |
+${files
+	.filter((file) => file.isTTY)
+	.map((file) => {
+		const cells = [file.name];
+		for (let i = -1; i <= 2; ++i) {
+			cells.push(percent(file.codepointCounts.get(i) / codepointTotals.get(i)));
+		}
+		let sequences = percent(file.sequenceCount / sequenceTotal);
+		if (file.keyValues.get('sequences') === 'font') {
+			sequences += '<sup>1</sup>';
+		}
+		if (file.keyValues.get('sequences') === 'mode-2027') {
+			sequences += '<sup>2</sup>';
+		}
+		cells.push(sequences);
+		return `| ${cells.join(' | ')} |`;
+	})
+	.join('\n')}
+
+<sup>1</sup> Emoji sequences are supported when displaying text, but the cursor
+moves as if they were not supported. In practice this causes a reduction in the
+available column width when using emoji sequences.
+
+<sup>2</sup> [Mode 2027](https://github.com/contour-terminal/terminal-unicode-core)
+must be enabled to support emoji sequences: \`\\x1b[?2027h\`.
+
+[Full analysis](./index.html)
+`;
+
+await writeFile(join(ANALYSIS_DIR, 'summary.md'), summary, {
+	encoding: 'utf-8',
+	mode: 0o644,
+});
+
+function makeBlockLink(char) {
+	const block = uBlock(char);
+	if (!block[2]) {
+		return '';
+	}
+	return toLink(
+		block[2] ?? '',
+		`https://www.unicode.org/charts/PDF/U${block[0].toString(16).padStart(4, '0').toUpperCase()}.pdf`,
+	);
+}
 
 function makeNextFn(...tables) {
 	const nextFns = tables.map(readNextChangeCharacter);
@@ -299,10 +395,11 @@ function printSample(codepoint, combining) {
 	} else if (codepoint === 0x2069) {
 		return '[pdi]';
 	}
-	const c = String.fromCodePoint(codepoint);
-	if (/^(\p{Cs}|\p{Co})$/v.test(c)) {
+	const block = uGeneralCategory(codepoint)[2];
+	if (block === 'Cs' || block === 'Co') {
 		return '';
 	}
+	const c = String.fromCodePoint(codepoint);
 	return combining ? `[a${c}b]` : c;
 }
 
@@ -310,12 +407,28 @@ function codepointsToString(l) {
 	return l.map((c) => String.fromCodePoint(c)).join('');
 }
 
-function cellMerger() {
+function inc(table, key, value) {
+	table.set(key, (table.get(key) ?? 0) + value);
+}
+
+function percent(v) {
+	return (v * 100).toFixed(1) + '%';
+}
+
+function mergeCells(
+	tbody,
+	excludeRow = (row) => row.nomerge,
+	excludeCell = (cell) => cell.nomerge,
+) {
 	let prev = null;
-	return (cells, exclude) => {
-		let latest = cells[0];
-		for (let i = 1; i < cells.length; ++i) {
-			if (
+	for (const row of tbody) {
+		const cells = row.cells;
+		let latest = null;
+		for (let i = 0; i < cells.length; ++i) {
+			if (excludeCell(cells[i], i, row)) {
+				latest = null;
+			} else if (
+				latest &&
 				cells[i].content === latest.content &&
 				cells[i].raw === latest.raw &&
 				cells[i].class === latest.class
@@ -326,11 +439,13 @@ function cellMerger() {
 				latest = cells[i];
 			}
 		}
-		if (exclude) {
+		if (excludeRow(row)) {
 			prev = null;
 		} else if (prev) {
 			for (let i = 0; i < cells.length; ++i) {
-				if (
+				if (cells[i] && excludeCell(cells[i], i, row)) {
+					prev[i] = null;
+				} else if (
 					cells[i] &&
 					prev[i] &&
 					cells[i].content === prev[i].content &&
@@ -347,5 +462,5 @@ function cellMerger() {
 		} else {
 			prev = [...cells];
 		}
-	};
+	}
 }
