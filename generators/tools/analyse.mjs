@@ -130,31 +130,31 @@ for (let char = 0x000000; char < codepointCount; ) {
 			`https://www.unicode.org/charts/PDF/U${block[0].toString(16).padStart(4, '0').toUpperCase()}.pdf`,
 		);
 	}
-	const fileCells = files.map(({ w }) => {
-		const width = w(char);
-		return {
-			content: width,
-			class:
-				width === expectedWidth ? 'y' : expectedWidth > -2 ? 'n' : `w-${width}`,
-		};
-	});
-	mergeCodepointCells(fileCells, unassigned);
-	codepointTable.tbody.push({
-		class: unassigned ? 'unassigned' : '',
-		cells: [
-			{ content: printCodepointRange(char, rangeEnd) },
-			...fileCells,
-			{ raw: blockLink, class: 'left' },
-			{ content: printVersionRange(ages), class: 'left' },
-			{ content: note, class: 'notes' },
-			{
-				content: showCharacters
-					? printRangeSample(char, rangeEnd, isCombining)
-					: '',
-				class: 'chars',
-			},
-		],
-	});
+	const cells = [
+		{ content: printCodepointRange(char, rangeEnd) },
+		...files.map(({ w }) => {
+			const width = w(char);
+			return {
+				content: width,
+				class:
+					width === expectedWidth
+						? 'y'
+						: expectedWidth > -2
+							? 'n'
+							: `w${width}`,
+			};
+		}),
+		{ raw: blockLink },
+		{ content: printVersionRange(ages) },
+		{ content: note },
+		{
+			content: showCharacters
+				? printRangeSample(char, rangeEnd, isCombining)
+				: '',
+		},
+	];
+	mergeCodepointCells(cells, unassigned);
+	codepointTable.tbody.push({ class: unassigned ? 'x' : '', cells });
 	char = nextChar;
 }
 
@@ -185,28 +185,24 @@ for (const seq of strings.split(' ')) {
 		const rangeEnd = Math.min(nextI - n, entries.length) - 1;
 		const expectedWidth = wExpected(i);
 		const unassigned = expectedWidth === UNSUPPORTED; // also includes sequences which do not change the width, but that's fine for this use
-		const fileCells = files.map(({ w }) => {
-			const width = w(i);
-			return { content: width, class: width === 2 ? 'y' : `w-${width}` };
-		});
-		mergeSequenceCells(fileCells, unassigned);
-		sequenceTable.tbody.push({
-			class: unassigned ? 'unassigned' : '',
-			cells: [
-				{ content: name },
-				...fileCells,
-				{ content: notes(i) ?? '', class: 'notes' },
-				{
-					content: unassigned
-						? codepointsToString(entries[rangeBegin])
-						: entries
-								.slice(rangeBegin, rangeEnd + 1)
-								.map(codepointsToString)
-								.join(' '),
-					class: 'chars',
-				},
-			],
-		});
+		const cells = [
+			{ content: name },
+			...files.map(({ w }) => {
+				const width = w(i);
+				return { content: width, class: width === 2 ? 'y' : `w${width}` };
+			}),
+			{ content: notes(i) ?? '' },
+			{
+				content: unassigned
+					? codepointsToString(entries[rangeBegin])
+					: entries
+							.slice(rangeBegin, rangeEnd + 1)
+							.map(codepointsToString)
+							.join(' '),
+			},
+		];
+		mergeSequenceCells(cells, unassigned);
+		sequenceTable.tbody.push({ class: unassigned ? 'x' : '', cells });
 		i = nextI;
 	}
 	n += entries.length;
@@ -275,39 +271,39 @@ function printSample(codepoint, combining) {
 	if (codepoint < 0x0020 || (codepoint >= 0x7f && codepoint < 0xa0)) {
 		return printCodepoint(codepoint);
 	} else if (codepoint === 0x061c) {
-		return '<arabic letter mark>';
+		return '[arabic letter mark]';
 	} else if (codepoint === 0x200e) {
-		return '<ltr>';
+		return '[ltr]';
 	} else if (codepoint === 0x200f) {
-		return '<rtl>';
+		return '[rtl]';
 	} else if (codepoint === 0x2028) {
-		return '<lsep>';
+		return '[lsep]';
 	} else if (codepoint === 0x2029) {
-		return '<psep>';
+		return '[psep]';
 	} else if (codepoint === 0x202a) {
-		return '<lre>';
+		return '[lre]';
 	} else if (codepoint === 0x202b) {
-		return '<rle>';
+		return '[rle]';
 	} else if (codepoint === 0x202c) {
-		return '<pdf>';
+		return '[pdf]';
 	} else if (codepoint === 0x202d) {
-		return '<lro>';
+		return '[lro]';
 	} else if (codepoint === 0x202e) {
-		return '<rlo>';
+		return '[rlo]';
 	} else if (codepoint === 0x2066) {
-		return '<lri>';
+		return '[lri]';
 	} else if (codepoint === 0x2067) {
-		return '<rli>';
+		return '[rli]';
 	} else if (codepoint === 0x2068) {
-		return '<fsi>';
+		return '[fsi]';
 	} else if (codepoint === 0x2069) {
-		return '<pdi>';
+		return '[pdi]';
 	}
 	const c = String.fromCodePoint(codepoint);
 	if (/^(\p{Cs}|\p{Co})$/v.test(c)) {
 		return '';
 	}
-	return combining ? `<a${c}b>` : c;
+	return combining ? `[a${c}b]` : c;
 }
 
 function codepointsToString(l) {
@@ -321,6 +317,7 @@ function cellMerger() {
 		for (let i = 1; i < cells.length; ++i) {
 			if (
 				cells[i].content === latest.content &&
+				cells[i].raw === latest.raw &&
 				cells[i].class === latest.class
 			) {
 				latest.colspan = (latest.colspan ?? 1) + 1;
@@ -337,6 +334,7 @@ function cellMerger() {
 					cells[i] &&
 					prev[i] &&
 					cells[i].content === prev[i].content &&
+					cells[i].raw === prev[i].raw &&
 					cells[i].class === prev[i].class &&
 					cells[i].colspan === prev[i].colspan
 				) {

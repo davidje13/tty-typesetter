@@ -11,7 +11,7 @@ function dom(element, attrs, content) {
 	const v = Object.entries(attrs)
 		.filter(([, v]) => v)
 		.map(([k, v]) => ` ${k}="${escapeHTML(v)}"`)
-		.join(' ');
+		.join('');
 	return `<${element}${v}>${content}</${element}>`;
 }
 

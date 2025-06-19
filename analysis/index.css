@@ -51,16 +51,16 @@ th > div {
 	border-bottom: 1px solid #808080;
 }
 
-.w--1 {
+.w-1 {
 	background: #eeeeee;
 }
-.w-0 {
+.w0 {
 	background: #cccccc;
 }
-.w-1 {
+.w1 {
 	background: #ffffff;
 }
-.w-2 {
+.w2 {
 	background: #ccccff;
 }
 .y {
@@ -71,22 +71,26 @@ th > div {
 	color: white;
 }
 
-.left {
+.codepoints td:nth-last-child(4) {
 	text-align: left;
 }
 
-.notes {
+.codepoints td:nth-last-child(3) {
+	text-align: left;
+}
+
+td:nth-last-child(2) {
 	font: 0.9em sans-serif;
 	text-align: left;
 	white-space: wrap;
 }
 
-.chars {
+td:last-child {
 	text-align: left;
 	white-space: wrap;
 }
 
-#unassigned:not(:checked) ~ table .unassigned {
+#unassigned:not(:checked) ~ table .x {
 	display: none;
 }
 
