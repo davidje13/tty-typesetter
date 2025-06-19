@@ -19,8 +19,12 @@ export function toLink(text, url) {
 	return dom('a', { href: url, target: '_blank' }, escapeHTML(text));
 }
 
-export function toTable({ thead, tbody }) {
-	return `<table><thead>\n${thead.map(toHeadRow).join('\n')}\n</thead><tbody>\n${tbody.map(toBodyRow).join('\n')}\n</tbody></table>`;
+export function toTable(def) {
+	return dom(
+		'table',
+		{ class: def.class },
+		`<thead>\n${def.thead.map(toHeadRow).join('\n')}\n</thead><tbody>\n${def.tbody.map(toBodyRow).join('\n')}\n</tbody>`,
+	);
 }
 
 function toHeadRow(row) {

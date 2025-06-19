@@ -15,6 +15,7 @@ td {
 	text-align: center;
 	font-family: monospace;
 	vertical-align: top;
+	white-space: nowrap;
 }
 
 thead {
@@ -62,10 +63,10 @@ th > div {
 .w-2 {
 	background: #ccccff;
 }
-.pass {
+.y {
 	background: #ccff80;
 }
-.fail {
+.n {
 	background: #cc0000;
 	color: white;
 }
@@ -74,12 +75,15 @@ th > div {
 	text-align: left;
 }
 
-.nowrap {
-	white-space: nowrap;
-}
-
 .notes {
 	font: 0.9em sans-serif;
+	text-align: left;
+	white-space: wrap;
+}
+
+.chars {
+	text-align: left;
+	white-space: wrap;
 }
 
 #unassigned:not(:checked) ~ table .unassigned {

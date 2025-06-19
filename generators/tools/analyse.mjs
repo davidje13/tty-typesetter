@@ -70,6 +70,7 @@ const notes = readOrdered(notesTable, 2);
 const next = makeNextFn(...files.map((f) => f.table), notesTable, uBlockTable);
 
 const codepointTable = {
+	class: 'codepoints',
 	thead: [
 		{
 			cells: [
@@ -94,7 +95,7 @@ for (let char = 0x000000; char < codepointCount; ) {
 	for (let j = char; j <= rangeEnd; ++j) {
 		generalCats.add(uGeneralCategory(j)[2]);
 		ages.add(uAge(j)[2]);
-		if (!/^\p{Deprecated}$/.test(String.fromCodePoint(j))) {
+		if (!/^\p{Deprecated}$/v.test(String.fromCodePoint(j))) {
 			deprecated = false;
 		}
 	}
@@ -131,22 +132,27 @@ for (let char = 0x000000; char < codepointCount; ) {
 	codepointTable.tbody.push({
 		class: unassigned ? 'unassigned' : '',
 		cells: [
-			{ content: printCodepointRange(char, rangeEnd), class: 'nowrap' },
+			{ content: printCodepointRange(char, rangeEnd) },
 			...files.map(({ w }) => {
 				const width = w(char);
 				return {
 					content: width,
-					class: `w-${width} ${width === expectedWidth ? 'pass' : expectedWidth > -2 ? 'fail' : ''}`,
+					class:
+						width === expectedWidth
+							? 'y'
+							: expectedWidth > -2
+								? 'n'
+								: `w-${width}`,
 				};
 			}),
-			{ raw: blockLink, class: 'left nowrap' },
-			{ content: printVersionRange(ages), class: 'left nowrap' },
-			{ content: note, class: 'left notes' },
+			{ raw: blockLink, class: 'left' },
+			{ content: printVersionRange(ages), class: 'left' },
+			{ content: note, class: 'notes' },
 			{
 				content: showCharacters
 					? printRangeSample(char, rangeEnd, isCombining)
 					: '',
-				class: 'left',
+				class: 'chars',
 			},
 		],
 	});
@@ -154,6 +160,7 @@ for (let char = 0x000000; char < codepointCount; ) {
 }
 
 const sequenceTable = {
+	class: 'sequences',
 	thead: [
 		{
 			cells: [
@@ -181,15 +188,15 @@ for (const seq of strings.split(' ')) {
 		sequenceTable.tbody.push({
 			class: unassigned ? 'unassigned' : '',
 			cells: [
-				{ content: name, class: 'nowrap' },
+				{ content: name },
 				...files.map(({ w }) => {
 					const width = w(i);
 					return {
 						content: width,
-						class: `w-${width} ${width === 2 ? 'pass' : ''}`,
+						class: width === 2 ? 'y' : `w-${width}`,
 					};
 				}),
-				{ content: notes(i) ?? '', class: 'left notes' },
+				{ content: notes(i) ?? '', class: 'notes' },
 				{
 					content: unassigned
 						? codepointsToString(entries[rangeBegin])
@@ -197,7 +204,7 @@ for (const seq of strings.split(' ')) {
 								.slice(rangeBegin, rangeEnd + 1)
 								.map(codepointsToString)
 								.join(' '),
-					class: 'left',
+					class: 'chars',
 				},
 			],
 		});
@@ -253,7 +260,7 @@ function printCodepointRange(a, b) {
 }
 
 function printCodepoint(c) {
-	return 'U+' + c.toString(16).padStart(6, '0');
+	return 'U+' + c.toString(16).padStart(4, '0');
 }
 
 function printRangeSample(from, to, combining) {
@@ -265,40 +272,43 @@ function printRangeSample(from, to, combining) {
 	return v.join(short ? '\u200b' : ' ');
 }
 
-function printSample(char, combining) {
-	if (char === 0x0000) {
-		return '<null>';
-	} else if (char < 0x0020) {
-		return `U+${char.toString(16).padStart(6, '0')}`;
-	} else if (char === 0x061c) {
+function printSample(codepoint, combining) {
+	if (codepoint < 0x0020 || (codepoint >= 0x7f && codepoint < 0xa0)) {
+		return printCodepoint(codepoint);
+	} else if (codepoint === 0x061c) {
 		return '<arabic letter mark>';
-	} else if (char === 0x200e) {
+	} else if (codepoint === 0x200e) {
 		return '<ltr>';
-	} else if (char === 0x200f) {
+	} else if (codepoint === 0x200f) {
 		return '<rtl>';
-	} else if (char === 0x202a) {
+	} else if (codepoint === 0x2028) {
+		return '<lsep>';
+	} else if (codepoint === 0x2029) {
+		return '<psep>';
+	} else if (codepoint === 0x202a) {
 		return '<lre>';
-	} else if (char === 0x202b) {
+	} else if (codepoint === 0x202b) {
 		return '<rle>';
-	} else if (char === 0x202c) {
+	} else if (codepoint === 0x202c) {
 		return '<pdf>';
-	} else if (char === 0x202d) {
+	} else if (codepoint === 0x202d) {
 		return '<lro>';
-	} else if (char === 0x202e) {
+	} else if (codepoint === 0x202e) {
 		return '<rlo>';
-	} else if (char === 0x2066) {
+	} else if (codepoint === 0x2066) {
 		return '<lri>';
-	} else if (char === 0x2067) {
+	} else if (codepoint === 0x2067) {
 		return '<rli>';
-	} else if (char === 0x2068) {
+	} else if (codepoint === 0x2068) {
 		return '<fsi>';
-	} else if (char === 0x2069) {
+	} else if (codepoint === 0x2069) {
 		return '<pdi>';
 	}
-	if (combining) {
-		return `<a${String.fromCodePoint(char)}b>`;
+	const c = String.fromCodePoint(codepoint);
+	if (/^(\p{Cs}|\p{Co})$/v.test(c)) {
+		return '';
 	}
-	return String.fromCodePoint(char);
+	return combining ? `<a${c}b>` : c;
 }
 
 function codepointsToString(l) {
