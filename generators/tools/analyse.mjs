@@ -277,13 +277,13 @@ enclosing marks).
 Note that terminals which score low here are not necessarily "bad"; zero-width
 and joining characters may be intentionally displayed to aid visibility.
 
-| Terminal | Control Code Support | Zero Width / Combiner Support | Narrow Character Support | Wide Character Support | Emoji Sequence Support |
-| -------- | -------------------: | ----------------------------: | -----------------------: | ---------------------: | ---------------------: |
+| Terminal | Zero Width / Combiner Support | Narrow Character Support | Wide Character Support | Emoji Sequence Support |
+| -------- | ----------------------------: | -----------------------: | ---------------------: | ---------------------: |
 ${files
 	.filter((file) => file.isTTY)
 	.map((file) => {
 		const cells = [file.name];
-		for (let i = -1; i <= 2; ++i) {
+		for (let i = 0; i <= 2; ++i) {
 			cells.push(percent(file.codepointCounts.get(i) / codepointTotals.get(i)));
 		}
 		let sequences = percent(file.sequenceCount / sequenceTotal);
