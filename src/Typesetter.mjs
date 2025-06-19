@@ -27,10 +27,13 @@ export class Typesetter {
 	measureCodepointStateful(codepoint, state) {
 		let w = this.measureCodepoint(codepoint);
 		if (state._isAnsi) {
-			if (
-				(codepoint >= 0x41 && codepoint <= 0x5a) ||
-				(codepoint >= 0x61 && codepoint <= 0x7a)
-			) {
+			if (codepoint < 0x20 || codepoint > 0x7e) {
+				// invalid character for ANSI escape
+				state._isAnsi = false;
+				return w;
+			}
+			if (codepoint >= 0x40 && codepoint <= 0x7e) {
+				// terminating character for ANSI escape
 				state._isAnsi = false;
 			}
 			return 0;

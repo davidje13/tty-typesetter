@@ -31,21 +31,27 @@ const w12 = await measureStr(c1 + c2);
 if (w12 === w1) {
 	sequenceSupport = 'full';
 } else {
-	process.stderr.write('\r\x1B[2K');
-	process.stderr.write(' '.repeat(5) + 'V\n');
-	process.stderr.write(
-		c1 + c2 + ' '.repeat(5 - w1 - w2) + 'A' + ' '.repeat(w2 - 1) + 'B\n',
-	);
-	process.stderr.write(' '.repeat(5) + '^\n\n');
-	const answer = await readStdin(
-		'Font calibration: which letter (A or B) is being pointed at above? ',
-		/[abq]/i,
-	);
-	process.stderr.write('\n\n');
-	if (answer[0].toLowerCase() === 'q') {
-		process.exit(1);
+	process.stderr.write('\x1B[?2027h');
+	const w12_2027 = await measureStr(c1 + c2);
+	if (w12_2027 === w1) {
+		sequenceSupport = 'mode-2027';
+	} else {
+		process.stderr.write('\r\x1B[2K');
+		process.stderr.write(' '.repeat(5) + 'V\n');
+		process.stderr.write(
+			c1 + c2 + ' '.repeat(5 - w1 - w2) + 'A' + ' '.repeat(w2 - 1) + 'B\n',
+		);
+		process.stderr.write(' '.repeat(5) + '^\n\n');
+		const answer = await readStdin(
+			'Font calibration: which letter (A or B) is being pointed at above? ',
+			/[abq]/i,
+		);
+		process.stderr.write('\n\n');
+		if (answer[0].toLowerCase() === 'q') {
+			process.exit(1);
+		}
+		sequenceSupport = answer[0].toLowerCase() === 'b' ? 'font' : 'none';
 	}
-	sequenceSupport = answer[0].toLowerCase() === 'b' ? 'font' : 'none';
 }
 
 process.stderr.write('Measuring...\n');
@@ -57,6 +63,7 @@ function beforeBatch() {
 const showProgress = (label) => (frac) =>
 	process.stderr.write(`\n${label}: ${(frac * 100).toFixed(1)}%\x1B[A`);
 
+const tmBeforeCodepoints = performance.now();
 const r = [];
 for await (const w of batched(
 	0,
@@ -68,6 +75,7 @@ for await (const w of batched(
 )) {
 	r.push(w);
 }
+const tmAfterCodepoints = performance.now();
 
 // Check emoji sequences
 // note: in practice, Apple's terminal believes it does not support these
@@ -97,8 +105,10 @@ if (sequenceSupport === 'full') {
 
 process.stderr.write('\n\x1B[2KDone.\n\n');
 process.stdin.setRawMode(false);
+if (sequenceSupport === 'mode-2027') {
+	process.stderr.write('\x1B[?2027l');
+}
 
-const infoTarget = flags.includes('--raw') ? process.stderr : process.stdout;
 for (const key of [
 	'TERM',
 	'TERM_PROGRAM',
@@ -107,9 +117,13 @@ for (const key of [
 	'VTE_VERSION',
 	'LANG',
 ]) {
-	infoTarget.write(`${key}=${process.env[key] ?? ''}\n`);
+	process.stdout.write(`${key}=${process.env[key] ?? ''}\n`);
 }
-infoTarget.write(`sequences=${sequenceSupport}\n`);
+process.stdout.write(`platform=${process.platform}\n`);
+process.stdout.write(`sequences=${sequenceSupport}\n`);
+process.stdout.write(
+	`time=${((tmAfterCodepoints - tmBeforeCodepoints) * 0.001).toFixed(3)}s (batch=${batchSize})\n`,
+);
 
 const compressor = new Compressor(out);
 r.forEach((w, char) => compressor.add(char, w));

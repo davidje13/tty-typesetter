@@ -21,14 +21,15 @@ for (const datFile of (await readdir(DATA_DIR)).sort()) {
 	if (!datFile.endsWith('.dat')) {
 		continue;
 	}
-	const data = (
-		await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' })
-	).trim();
+	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
+	const packedTable = data.trim().split('\n').pop();
 	const outFile = datFile.replace(/\.dat$/, '.mjs');
-	if (observedData.has(data)) {
-		console.log(`  ${datFile}: duplicate of ${observedData.get(data).datFile}`);
+	if (observedData.has(packedTable)) {
+		console.log(
+			`  ${datFile}: duplicate of ${observedData.get(packedTable).datFile}`,
+		);
 	} else {
-		const table = unpack(data);
+		const table = unpack(packedTable);
 		console.log(`  ${datFile}: ${table.length} nodes`);
 		files.push({
 			datFile,
@@ -37,7 +38,7 @@ for (const datFile of (await readdir(DATA_DIR)).sort()) {
 			source: null,
 			diff: null,
 		});
-		observedData.set(data, { datFile, outFile });
+		observedData.set(packedTable, { datFile, outFile });
 	}
 }
 observedData.clear();
