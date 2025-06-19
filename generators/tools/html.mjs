@@ -1,5 +1,5 @@
 function escapeHTML(value) {
-	return value
+	return String(value)
 		.replaceAll('&', '&amp;')
 		.replaceAll('<', '&lt;')
 		.replaceAll('>', '&gt;')
@@ -29,22 +29,26 @@ export function toTable(def) {
 
 function toHeadRow(row) {
 	const body = row.cells.map((cell) =>
-		dom(
-			'th',
-			{ class: cell.class },
-			dom('div', {}, cell.raw ?? escapeHTML(String(cell.content))),
-		),
+		cell
+			? dom(
+					'th',
+					{ class: cell.class, colspan: cell.colspan, rowspan: cell.rowspan },
+					dom('div', {}, cell.raw ?? escapeHTML(cell.content)),
+				)
+			: '',
 	);
 	return dom('tr', { class: row.class }, body.join(''));
 }
 
 function toBodyRow(row) {
 	const body = row.cells.map((cell) =>
-		dom(
-			'td',
-			{ class: cell.class },
-			cell.raw ?? escapeHTML(String(cell.content)),
-		),
+		cell
+			? dom(
+					'td',
+					{ class: cell.class, colspan: cell.colspan, rowspan: cell.rowspan },
+					cell.raw ?? escapeHTML(cell.content),
+				)
+			: '',
 	);
 	return dom('tr', { class: row.class }, body.join(''));
 }
