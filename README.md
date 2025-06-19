@@ -161,13 +161,13 @@ This project currently has data for:
 - VSCode's built-in terminal (and dev container terminal)
 - IntelliJ's editor's built-in terminal (JetBrains-JediTerm)
 - LXTerminal
+- Warp
+- kitty
 - rxvt-unicode
 - xterm
 - eterm
-- kitty
-
-- Unicode 16 following the rules originally defined by Markus Kuhn for `wcwidth`
-  (used as a fallback if the terminal is not recognised)
+- Unicode 16, following the rules originally defined by Markus Kuhn for
+  `wcwidth` (used as a fallback if the terminal is not recognised)
 
 ## Known limitations
 

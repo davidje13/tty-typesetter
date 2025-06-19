@@ -7,6 +7,7 @@ import { data as kitty } from '../data/kitty.mjs';
 import { data as urxvt } from '../data/tty-rxvt-unicode--.mjs';
 import { data as vscode_1_100_3 } from '../data/tty-xterm-256color-vscode-1.100.3.mjs';
 import { data as apple455_1 } from '../data/tty-xterm-256color-Apple_Terminal-455.1.mjs';
+import { data as warp } from '../data/tty-warp-0.2025.06.mjs';
 import { data as intellij } from '../data/tty-jediterm-2023.3.8.mjs';
 import { data as eterm } from '../data/tty-eterm.mjs';
 
@@ -25,6 +26,11 @@ const sources = [
 		_table: vscode_1_100_3,
 		_fontSequences: false,
 		_require: [['TERM_PROGRAM', 'vscode']],
+	},
+	{
+		_table: warp,
+		_fontSequences: false,
+		_require: [['TERM_PROGRAM', 'WarpTerminal']],
 	},
 	{
 		_table: kitty,
