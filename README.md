@@ -44,7 +44,7 @@ process.stdout.write('\n');
 
 process.stdout.write('With tty-typesetter:\n');
 for (const line of typesetter.typeset(message)) {
-	process.stdout.write(line);
+  process.stdout.write(line);
 }
 process.stdout.write('\n');
 ```
@@ -95,10 +95,10 @@ plan to move the terminal's cursor later:
 ```js
 let line = 1;
 for (const line of typesetter.typeset(message)) {
-	process.stdout.write(line);
-	if (line.endsWith('\n')) {
-		line++;
-	}
+  process.stdout.write(line);
+  if (line.endsWith('\n')) {
+    line++;
+  }
 }
 ```
 
@@ -111,29 +111,29 @@ below are the defaults):
 
 ```js
 myTypesetter.typeset(message, {
-	// add hard line wraps if lines are longer than this
-	columnLimit: process.stdout.columns,
+  // add hard line wraps if lines are longer than this
+  columnLimit: process.stdout.columns,
 
-	// skip ANSI escape sequences: return a width of 0 for contained characters
-	skipAnsi: true,
+  // skip ANSI escape sequences: return a width of 0 for contained characters
+  skipAnsi: true,
 
-	// add implicit spaces after emoji which can bleed into the next character if the terminal advances only 1 character
-	padUnsupportedCharacters: true,
+  // add implicit spaces after emoji which can bleed into the next character if the terminal advances only 1 character
+  padUnsupportedCharacters: true,
 
-	// omit soft hyphens from output unless they are at a wrap point
-	softHyphens: true,
+  // omit soft hyphens from output unless they are at a wrap point
+  softHyphens: true,
 
-	// apply a crude line wrapping algorithm based on spaces and soft hyphens
-	niceWrap: true,
+  // apply a crude line wrapping algorithm based on spaces and soft hyphens
+  niceWrap: true,
 
-	// replace tabs with spaces using this tab size (set to -1 to disable)
-	tabSize: 8,
+  // replace tabs with spaces using this tab size (set to -1 to disable)
+  tabSize: 8,
 
-	// beginning column for first line, for tab measurements
-	beginColumn: 0,
+  // beginning column for first line, for tab measurements
+  beginColumn: 0,
 
-	// beginning column for subsequent lines (defaults to beginColumn)
-	wrapColumn: 0,
+  // beginning column for subsequent lines (defaults to beginColumn)
+  wrapColumn: 0,
 });
 ```
 
@@ -142,10 +142,10 @@ non-indented tabstops, you can use:
 
 ```js
 for (const line of typesetter.typeset(message, {
-	columnLimit: process.stdout.columns - 2,
-	beginColumn: 2,
+  columnLimit: process.stdout.columns - 2,
+  beginColumn: 2,
 })) {
-	process.stdout.write('  ' + line);
+  process.stdout.write('  ' + line);
 }
 ```
 

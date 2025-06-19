@@ -3,7 +3,7 @@
 	"trailingComma": "all",
 	"useTabs": true,
 	"overrides": [
-		{ "files": "*.md", "options": { "proseWrap": "always" } },
+		{ "files": "*.md", "options": { "proseWrap": "always", "useTabs": false } },
 		{ "files": "*.json", "options": { "trailingComma": "none" } }
 	]
 }
