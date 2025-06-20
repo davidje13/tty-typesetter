@@ -26,6 +26,8 @@ declare module 'tty-typesetter' {
 	export class Typesetter {
 		constructor(env?: Record<string, string>);
 
+		supportsGraphemeClusters(): boolean;
+
 		measureCodepoint(codepoint: number): number | null;
 
 		measureCharacter(char: string | number): number | null;

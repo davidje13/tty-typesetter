@@ -8,12 +8,16 @@ export class Typesetter {
 		const { _mergedTable, _read, _fontSequences } = loadTable(env);
 		this.measureCodepoint = _read;
 		const lastChange = _mergedTable[_mergedTable.length - 1];
-		this._supportsMultiChar =
+		this._supportsGraphemeClusters =
 			lastChange[0] > codepointCount || lastChange[1] !== null
 				? 2
 				: _fontSequences
 					? 1
 					: 0;
+	}
+
+	supportsGraphemeClusters() {
+		return this._supportsGraphemeClusters === 2;
 	}
 
 	measureCharacter(char) {
@@ -52,6 +56,7 @@ export class Typesetter {
 				return 0;
 			}
 		}
+		// https://en.wikipedia.org/wiki/ANSI_escape_code
 		switch (state._isAnsi) {
 			case 0:
 				break;
@@ -78,7 +83,7 @@ export class Typesetter {
 		}
 
 		const w = this.measureCodepoint(codepoint);
-		if (this._supportsMultiChar !== 2) {
+		if (this._supportsGraphemeClusters !== 2) {
 			return w;
 		}
 
