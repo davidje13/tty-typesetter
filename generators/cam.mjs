@@ -7,14 +7,17 @@
 // characters as 1, instead of maintaining the previous width
 
 import { strings } from '../data/strings.mjs';
-import { explodeSequenceKeys } from './tools/read-strings.mjs';
+import {
+	codepointsToString,
+	explodeSequenceKeys,
+} from './tools/read-strings.mjs';
 import { Compressor } from './tools/Compressor.mjs';
 import { readOrdered } from './tools/readers.mjs';
 import {
 	loadUnicodeRangeData,
 	loadUnicodeStringData,
 } from './tools/unicode-data.mjs';
-import { codepointCount, UNSUPPORTED } from './tools/constants.mjs';
+import { codepointCount, IGNORE, UNSUPPORTED } from '../src/constants.mjs';
 
 const unicodeVersion = process.argv[2];
 if (!unicodeVersion) {
@@ -54,22 +57,15 @@ const uEmojiZwjSequences = await loadUnicodeStringData(
 
 const known = new Set();
 for (const [seq] of uEmojiSequences) {
-	known.add(seq.map((v) => String.fromCodePoint(v)).join(''));
+	known.add(codepointsToString(seq));
 }
 for (const [seq] of uEmojiZwjSequences) {
-	known.add(seq.map((v) => String.fromCodePoint(v)).join(''));
+	known.add(codepointsToString(seq));
 }
 
 let i = codepointCount;
 for (const seq of explodeSequenceKeys(strings)) {
-	let unsupportedW = 0;
-	for (const v of seq) {
-		unsupportedW += wcwidth(v);
-	}
-	if (
-		unsupportedW !== 2 &&
-		known.has(seq.map((v) => String.fromCodePoint(v)).join(''))
-	) {
+	if (known.has(codepointsToString(seq))) {
 		compressor.add(i, 2);
 	} else {
 		compressor.add(i, UNSUPPORTED);

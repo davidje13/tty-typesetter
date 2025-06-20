@@ -1,5 +1,5 @@
 name=emacs 30.1 ansi-term
-custom-notes=emacs ansi-term in emacs 30.1
+custom-notes=emacs ansi-term in emacs 30.1 - quirk: unknown emoji characters advance cursor ~2.5 cells
 TERM=eterm-color
 TERM_PROGRAM=
 TERM_PROGRAM_VERSION=

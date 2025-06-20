@@ -67,13 +67,15 @@ const typesetter = new Typesetter();
 w = typesetter.measureCodepoint(0x1f6d6); // 2
 w = typesetter.measureCharacter('\uD83D\uDED6'); // 2
 w = typesetter.measureString('A hut (\uD83D\uDED6)'); // 10 (or 9 in VSCode 1.100.3)
+w = typesetter.measureCodepoint(0x1f); // null
 
 const ruler = typesetter.measureStringProgressive();
 w1 = ruler('A'); // 1
-w2 = ruler(0x0020); // 2
+w2 = ruler(0x20); // 2
 w3 = ruler('h'); // 3
 w4 = ruler('u'); // 4
 w5 = ruler('t'); // 5
+w6 = ruler(0x1f); // 5
 ```
 
 ## Typesetting behaviour

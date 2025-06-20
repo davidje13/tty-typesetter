@@ -11,9 +11,13 @@ import {
 	readRandomAccess,
 } from './readers.mjs';
 import { loadUnicodeRangeData } from './unicode-data.mjs';
-import { explodeSequenceKey, printSequenceKey } from './read-strings.mjs';
+import {
+	codepointsToString,
+	explodeSequenceKey,
+	printSequenceKey,
+} from './read-strings.mjs';
 import { toLink, toTable } from './html.mjs';
-import { codepointCount, IGNORE, INHERIT, UNSUPPORTED } from './constants.mjs';
+import { codepointCount, IGNORE, UNSUPPORTED } from '../../src/constants.mjs';
 
 const SELF_DIR = dirname(new URL(import.meta.url).pathname);
 const DATA_DIR = join(SELF_DIR, '..', '..', 'data');
@@ -64,7 +68,7 @@ for (const datFile of dirListing) {
 		isTTY: datFile.startsWith('tty-'),
 		name: keyValues.get('name') || datFile.replace(/\.dat$/, ''),
 		keyValues,
-		w: readOrdered(table),
+		w: readRandomAccess(table),
 		table,
 		codepointCounts: new Map(),
 		sequenceCount: 0,
@@ -209,9 +213,17 @@ for (const seq of strings.split(' ')) {
 		if (!unassigned) {
 			sequenceTotal += count;
 		}
+		const currentString = entries[i - n];
 		const fileWidths = [];
 		for (const file of files) {
-			const width = file.w(i);
+			let width = file.w(i);
+			if (width === UNSUPPORTED) {
+				let fallbackW = 0;
+				for (const c of currentString) {
+					fallbackW += file.w(c);
+				}
+				width = fallbackW;
+			}
 			if (width === 2 && !unassigned) {
 				file.sequenceCount += count;
 			}
@@ -224,17 +236,15 @@ for (const seq of strings.split(' ')) {
 				{ content: name },
 				...fileWidths.map((width) => ({
 					content: width,
-					class: !unassigned && width === expectedWidth ? 'y' : `w${width}`,
+					class: !unassigned && width === expectedWidth ? 'y' : 'n',
 				})),
 				{ nomerge: true, content: notes(i) ?? '' },
 				{
 					nomerge: true,
-					content: unassigned
-						? codepointsToString(entries[rangeBegin])
-						: entries
-								.slice(rangeBegin, rangeEnd + 1)
-								.map(codepointsToString)
-								.join(' '),
+					content: entries
+						.slice(rangeBegin, rangeEnd + 1)
+						.map(codepointsToString)
+						.join(' '),
 				},
 			],
 		});
@@ -401,10 +411,6 @@ function printSample(codepoint, combining) {
 	}
 	const c = String.fromCodePoint(codepoint);
 	return combining ? `[a${c}b]` : c;
-}
-
-function codepointsToString(l) {
-	return l.map((c) => String.fromCodePoint(c)).join('');
 }
 
 function inc(table, key, value) {

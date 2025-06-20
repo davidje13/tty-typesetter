@@ -2,8 +2,11 @@
 
 import { strings } from '../data/strings.mjs';
 import { Compressor } from './tools/Compressor.mjs';
-import { codepointCount, UNSUPPORTED } from './tools/constants.mjs';
-import { explodeSequenceKeys } from './tools/read-strings.mjs';
+import {
+	codepointsToString,
+	explodeSequenceKeys,
+} from './tools/read-strings.mjs';
+import { codepointCount, UNSUPPORTED } from '../src/constants.mjs';
 
 const flags = process.argv.slice(2);
 
@@ -86,10 +89,7 @@ if (sequenceSupport === 'full') {
 		0,
 		seqs.length,
 		batchSize,
-		(i) =>
-			measureStr(seqs[i].map((i) => String.fromCodePoint(i)).join('')).then(
-				(w) => ({ w, i }),
-			),
+		(i) => measureStr(codepointsToString(seqs[i])).then((w) => ({ w, i })),
 		beforeBatch,
 		showProgress('sequences (2/2)'),
 	)) {

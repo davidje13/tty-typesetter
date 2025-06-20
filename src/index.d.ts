@@ -26,13 +26,13 @@ declare module 'tty-typesetter' {
 	export class Typesetter {
 		constructor(env?: Record<string, string>);
 
-		measureCodepoint(codepoint: number): number;
+		measureCodepoint(codepoint: number): number | null;
 
-		measureCharacter(char: string | number): number;
+		measureCharacter(char: string | number): number | null;
 
 		makeState(options?: StateOptions): State;
 
-		measureCodepointStateful(codepoint: number, state: State): number;
+		measureCodepointStateful(codepoint: number, state: State): number | null;
 
 		measureString(string: string, options?: StateOptions): number;
 

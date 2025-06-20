@@ -1,4 +1,4 @@
-import { INHERIT } from '../generators/tools/constants.mjs';
+import { INHERIT } from './constants.mjs';
 import { merge, unpack } from './unpack.mjs';
 
 describe('unpack', () => {

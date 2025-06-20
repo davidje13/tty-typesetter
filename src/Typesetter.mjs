@@ -1,5 +1,9 @@
-import { codepointCount, UNSUPPORTED } from '../generators/tools/constants.mjs';
+import { codepointCount } from './constants.mjs';
+import { strings } from '../data/strings.mjs';
 import { loadTable } from './data.mjs';
+import { splitKey } from './sequence-key.mjs';
+
+const STRING_PATTERNS = strings.split(' ').map(splitKey);
 
 export class Typesetter {
 	constructor(env = globalThis.process?.env ?? {}) {
@@ -7,7 +11,7 @@ export class Typesetter {
 		this.measureCodepoint = _read;
 		const lastChange = _table[_table.length - 1];
 		this._supportsMultiChar =
-			lastChange[0] > codepointCount || lastChange[1] !== UNSUPPORTED
+			lastChange[0] > codepointCount || lastChange[1] !== null
 				? 2
 				: _fontSequences
 					? 1
@@ -21,25 +25,49 @@ export class Typesetter {
 	}
 
 	makeState({ skipAnsi = true } = {}) {
-		return { _skipAnsi: skipAnsi, _isAnsi: false };
+		return { _skipAnsi: skipAnsi, _isAnsi: 0, _isEsc: false };
 	}
 
 	measureCodepointStateful(codepoint, state) {
 		let w = this.measureCodepoint(codepoint);
-		if (state._isAnsi) {
-			if (codepoint < 0x20 || codepoint > 0x7e) {
-				// invalid character for ANSI escape
-				state._isAnsi = false;
-				return w;
-			}
-			if (codepoint >= 0x40 && codepoint <= 0x7e) {
-				// terminating character for ANSI escape
-				state._isAnsi = false;
+		if (codepoint === 0x1b && state._skipAnsi) {
+			state._isEsc = true;
+			return 0;
+		}
+		if (state._isEsc) {
+			state._isEsc = false;
+			if (codepoint >= 0x40 && codepoint <= 0x5f) {
+				const c1equiv = codepoint + 0x40;
+				if (state._isAnsi) {
+					if (c1equiv === 0x9c) {
+						state._isAnsi = 0;
+					}
+				} else if (c1equiv !== 0x9c) {
+					// TODO: various termination requirements for different codes
+					state._isAnsi = c1equiv;
+				}
 			}
 			return 0;
 		}
-		if (codepoint === 0x1b && state._skipAnsi) {
-			state._isAnsi = true;
+		if (state._isAnsi) {
+			switch (state._isAnsi) {
+				case 0x9b: // Control Sequence
+					if (codepoint < 0x20 || codepoint > 0x7e) {
+						// invalid character for ANSI escape
+						state._isAnsi = 0;
+						return w;
+					}
+					if (codepoint >= 0x40 && codepoint <= 0x7e) {
+						// terminating character
+						state._isAnsi = 0;
+					}
+					break;
+				case 0x9d:
+					if (codepoint === 0x09) {
+						// bel (terminating character)
+						state._isAnsi = 0;
+					}
+			}
 			return 0;
 		}
 		// TODO: sequences
@@ -113,7 +141,12 @@ export class Typesetter {
 				}
 			}
 			let cw = this.measureCodepointStateful(codepoint, state);
-			if (codepoint === 0x00ad && softHyphens && !state._isAnsi) {
+			if (
+				codepoint === 0x00ad &&
+				softHyphens &&
+				!state._isAnsi &&
+				!state._isEsc
+			) {
 				cw = 1; // force display if we are using soft hyphens - we will display a regular hyphen
 			}
 			if (cw > 0) {
@@ -175,6 +208,15 @@ export class Typesetter {
 							_softHyphen: false,
 						};
 					}
+				}
+			} else if (cw < 0) {
+				if (column < -cw) {
+					// only possible if we added a line wrap inside an emoji sequence,
+					// but that should not happen unless the terminal is very narrow
+					// (prefers wrapping before emoji sequence)
+					column = 0;
+				} else {
+					column += cw;
 				}
 			} else if (cw === 0) {
 				currentLine.push(String.fromCodePoint(codepoint));

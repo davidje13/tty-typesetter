@@ -1,7 +1,7 @@
 // These ranges have been checked manually and include notes
 // where this is INHERIT, we inherit from cam-17.0 as the assumed ground-truth
 
-import { INHERIT, IGNORE } from './tools/constants.mjs';
+import { INHERIT, IGNORE } from '../src/constants.mjs';
 
 export const notesTable = [
 	[0x0000, INHERIT],

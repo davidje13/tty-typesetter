@@ -1,4 +1,4 @@
-import { INHERIT } from '../generators/tools/constants.mjs';
+import { INHERIT } from './constants.mjs';
 
 export function unpack(compressed) {
 	const data = [];

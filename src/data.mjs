@@ -10,6 +10,7 @@ import { data as apple455_1 } from '../data/tty-xterm-256color-Apple_Terminal-45
 import { data as warp } from '../data/tty-warp-0.2025.06.mjs';
 import { data as intellij } from '../data/tty-jediterm-2023.3.8.mjs';
 import { data as eterm } from '../data/tty-eterm.mjs';
+import { UNSUPPORTED } from './constants.mjs';
 
 const sources = [
 	{
@@ -72,7 +73,10 @@ export function loadTable(env) {
 			}
 		}
 		if (match) {
-			source._mergedTable ??= merge(source._table.map(unpack));
+			source._mergedTable ??= merge(source._table.map(unpack)).map(([k, v]) => [
+				k,
+				v === UNSUPPORTED ? null : v,
+			]);
 			source._read ??= read(source._mergedTable);
 			return source;
 		}

@@ -1,4 +1,4 @@
-import { INHERIT } from './constants.mjs';
+import { INHERIT } from '../../src/constants.mjs';
 
 export class Compressor {
 	constructor(onEntry) {

@@ -6,7 +6,7 @@ describe('Typesetter', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureCodepoint(0x0061), equals(1));
 			expect(ts.measureCodepoint(0x0000), equals(0));
-			expect(ts.measureCodepoint(0x0009), equals(-1));
+			expect(ts.measureCodepoint(0x0009), equals(null));
 			expect(ts.measureCodepoint(0x1f6d6), equals(2));
 		});
 	});
@@ -16,7 +16,7 @@ describe('Typesetter', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureCharacter('a'), equals(1));
 			expect(ts.measureCharacter('\u0000'), equals(0));
-			expect(ts.measureCharacter('\t'), equals(-1));
+			expect(ts.measureCharacter('\t'), equals(null));
 			expect(ts.measureCharacter('\uD83D\uDED6'), equals(2));
 		});
 
@@ -24,7 +24,7 @@ describe('Typesetter', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureCharacter(0x0061), equals(1));
 			expect(ts.measureCharacter(0x0000), equals(0));
-			expect(ts.measureCharacter(0x0009), equals(-1));
+			expect(ts.measureCharacter(0x0009), equals(null));
 			expect(ts.measureCharacter(0x1f6d6), equals(2));
 		});
 	});
@@ -42,6 +42,7 @@ describe('Typesetter', () => {
 		it('ignores ANSI escapes', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureString('foo \x1b[0m bar'), equals(8));
+			expect(ts.measureString('foo \x1b]0m bar\x1b\\ bar'), equals(8));
 		});
 
 		it('includes ANSI escapes if configured', () => {
@@ -88,6 +89,7 @@ describe('Typesetter', () => {
 			const fn = new Typesetter({}).measureStringProgressive();
 			expect(fn('a'), equals(1));
 			expect(fn('\x1b'), equals(1));
+			expect(fn('['), equals(1));
 			expect(fn('0'), equals(1));
 			expect(fn('m'), equals(1));
 			expect(fn('m'), equals(2));
