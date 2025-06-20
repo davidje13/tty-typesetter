@@ -200,14 +200,15 @@ const sequenceTable = {
 
 let i = codepointCount;
 let n = codepointCount;
-for (const seq of strings.split(' ')) {
+const seqs = strings.split(' ');
+for (let p = 0; p < seqs.length; ++p) {
+	const seq = seqs[p];
 	const entries = explodeSequenceKey(seq);
-	const name = printSequenceKey(seq);
+	const name = p + ': ' + printSequenceKey(seq);
 	while (i < n + entries.length) {
-		const nextI = next(i);
+		const nextI = Math.min(next(i), n + entries.length);
 		const rangeBegin = i - n;
-		const rangeEnd = Math.min(nextI - n, entries.length) - 1;
-		const count = rangeEnd + 1 - rangeBegin;
+		const count = nextI - i;
 		const expectedWidth = wExpected(i);
 		const unassigned = expectedWidth === UNSUPPORTED; // also includes sequences which do not change the width, but that's fine for this use
 		if (!unassigned) {
@@ -236,13 +237,13 @@ for (const seq of strings.split(' ')) {
 				{ content: name },
 				...fileWidths.map((width) => ({
 					content: width,
-					class: !unassigned && width === expectedWidth ? 'y' : 'n',
+					class: unassigned ? '' : width === expectedWidth ? 'y' : 'n',
 				})),
 				{ nomerge: true, content: notes(i) ?? '' },
 				{
 					nomerge: true,
 					content: entries
-						.slice(rangeBegin, rangeEnd + 1)
+						.slice(rangeBegin, rangeBegin + count)
 						.map(codepointsToString)
 						.join(' '),
 				},

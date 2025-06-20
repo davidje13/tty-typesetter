@@ -27,8 +27,8 @@ export class Typesetter {
 			_skipAnsi: skipAnsi,
 			_isAnsi: 0,
 			_isEsc: false,
-			patterns: [],
-			pos: 0,
+			_patterns: new Map(),
+			_pos: 0,
 		};
 	}
 
@@ -82,59 +82,69 @@ export class Typesetter {
 			return w;
 		}
 
-		let bestMatch = null;
-		for (let i = 0; i < STRING_PATTERNS.length; ++i) {
-			const { pattern, start } = STRING_PATTERNS[i];
-			const pos = (state.patterns[i] ??= { p: 0, n: 0, s: 0 });
-			if (pos.p === 0) {
-				pos.s = state.pos;
+		const relevantPatterns = STRING_PATTERN_CHARS.get(codepoint) ?? EMPTY;
+		for (const index of state._patterns.keys()) {
+			if (!relevantPatterns.has(index)) {
+				state._patterns.delete(index);
 			}
-			while (true) {
-				const part = pattern[pos.p];
-				const m = part.codepoints.indexOf(codepoint);
-				if (m !== -1) {
-					pos.n =
-						pos.n * (part.codepoints.length + (part.optional ? 1 : 0)) + m + 1;
-					++pos.p;
-					let match = true;
-					for (let p = pos.p; match && p < pattern.length; ++p) {
-						match &&= pattern[p].optional;
-					}
-					if (match) {
-						const ww = this.measureCodepoint(start + pos.n);
-						const posSeq = pos.s + ww + 0x100;
-						let wdiff = (posSeq - state.pos) & 0xff;
-						if (wdiff >= 0x80) {
-							wdiff -= 0x100;
-						}
-						if (bestMatch === null || wdiff < bestMatch.wdiff) {
-							bestMatch = { wdiff, posSeq };
-						}
-					}
-					break;
-				} else if (part.optional) {
-					pos.n *= part.codepoints.length + 1;
-					++pos.p;
-					if (pos.p === pattern.length) {
-						pos.p = 0;
-						pos.n = 0;
-						pos.s = state.pos;
-					}
-				} else if (pos.p > 0) {
-					pos.p = 0;
-					pos.n = 0;
-					pos.s = state.pos;
+		}
+		let bestMatch = null;
+		for (const index of relevantPatterns) {
+			const { _pattern, _rangeBegin } = STRING_PATTERNS[index];
+			let patternState = state._patterns.get(index);
+			if (!patternState) {
+				patternState = [];
+				state._patterns.set(index, patternState);
+			}
+			let prev = { n: 0, s: state._pos };
+			let result = null;
+			let resultM = 1;
+			for (let j = 0; j < _pattern.length; ++j) {
+				const part = _pattern[j];
+				const size = part.codepoints.length + (part.optional ? 1 : 0);
+				let next = patternState[j];
+				if (!next && part.optional && prev) {
+					next = { n: prev.n * size, s: prev.s };
+				}
+				if (part.optional) {
+					resultM *= size;
 				} else {
-					break;
+					result = null;
+				}
+				patternState[j] = null;
+				if (prev) {
+					const m = part.codepoints.indexOf(codepoint);
+					if (m !== -1) {
+						patternState[j] = result = {
+							n: prev.n * size + m + (part.optional ? 1 : 0),
+							s: prev.s,
+						};
+						resultM = 1;
+					}
+				}
+				prev = next;
+			}
+			if (result) {
+				const ww = this.measureCodepoint(_rangeBegin + result.n * resultM);
+				if (ww !== null) {
+					const posSeq = result.s + ww + 0x100;
+					let wdiff = (posSeq - state._pos) & 0xff;
+					if (wdiff >= 0x80) {
+						wdiff -= 0x100;
+					}
+					if (bestMatch === null || wdiff < bestMatch.wdiff) {
+						bestMatch = { wdiff, posSeq };
+					}
 				}
 			}
 		}
+
 		if (bestMatch) {
-			state.pos = bestMatch.posSeq & 0xff;
+			state._pos = bestMatch.posSeq & 0xff;
 			return bestMatch.wdiff;
 		} else {
 			if (w > 0) {
-				state.pos = (state.pos + w) & 0xff;
+				state._pos = (state._pos + w) & 0xff;
 			}
 			return w;
 		}
@@ -149,7 +159,7 @@ export class Typesetter {
 				++i; // skip past surrogate pair
 			}
 			const cw = this.measureCodepointStateful(codepoint, state);
-			if (cw > 0) {
+			if (cw !== null) {
 				w += cw;
 			}
 		}
@@ -162,7 +172,7 @@ export class Typesetter {
 		return (char) => {
 			const codepoint = typeof char === 'number' ? char : char.codePointAt(0);
 			const cw = this.measureCodepointStateful(codepoint, state);
-			if (cw > 0) {
+			if (cw !== null) {
 				w += cw;
 			}
 			return w;
@@ -325,15 +335,22 @@ export class Typesetter {
 	}
 }
 
+const STRING_PATTERN_CHARS = new Map();
+const EMPTY = new Set();
 const STRING_PATTERNS = strings
 	.split(' ')
 	.map(splitKey)
-	.map((pattern) => ({ pattern, begin: 0 }));
+	.map((pattern) => ({ _pattern: pattern, _rangeBegin: 0 }));
 
-for (let i = 0, p = 0; i < STRING_PATTERNS.length; ++i) {
-	STRING_PATTERNS[i].begin = p;
+for (let i = 0, p = codepointCount; i < STRING_PATTERNS.length; ++i) {
+	STRING_PATTERNS[i]._rangeBegin = p;
 	let count = 1;
-	for (const part of STRING_PATTERNS[i].pattern) {
+	for (const part of STRING_PATTERNS[i]._pattern) {
+		for (const codepoint of part.codepoints) {
+			const list = STRING_PATTERN_CHARS.get(codepoint) ?? new Set();
+			list.add(i);
+			STRING_PATTERN_CHARS.set(codepoint, list);
+		}
 		count *= part.codepoints.length + (part.optional ? 1 : 0);
 	}
 	p += count;

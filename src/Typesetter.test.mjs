@@ -67,6 +67,22 @@ describe('Typesetter', () => {
 				equals(4),
 			);
 			expect(ts.measureString('\uD83C\uDFFD\uD83E\uDDD3'), equals(4));
+
+			// man+woman+girl+boy (=> 2 parent 2 child family)
+			expect(
+				ts.measureString(
+					'family: \uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66',
+				),
+				equals(10),
+			);
+
+			// man+woman+girlboy (=> 2 parent 1 child family, then boy)
+			expect(
+				ts.measureString(
+					'\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\uD83D\uDC66',
+				),
+				equals(4),
+			);
 		});
 
 		it('does not squash combined characters if the terminal only supports them via its font', () => {
@@ -103,6 +119,17 @@ describe('Typesetter', () => {
 			expect(fn('0'), equals(1));
 			expect(fn('m'), equals(1));
 			expect(fn('m'), equals(2));
+		});
+
+		it('squashes combined characters', () => {
+			const fn = new Typesetter({}).measureStringProgressive();
+			expect(fn(0x1f468), equals(2)); // man
+			expect(fn(0x200d), equals(2)); // +
+			expect(fn(0x1f469), equals(4)); // woman
+			expect(fn(0x200d), equals(4)); // +
+			expect(fn(0x1f467), equals(2)); // girl (recognised pattern)
+			expect(fn(0x200d), equals(2)); // +
+			expect(fn(0x1f466), equals(2)); // boy (second recognised pattern overrides first)
 		});
 	});
 
