@@ -53,10 +53,20 @@ describe('Typesetter', () => {
 			);
 		});
 
-		it.ignore('squashes combined characters', () => {
-			// TODO
+		it('squashes combined characters', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureString('\uD83E\uDDD3\uD83C\uDFFD'), equals(2));
+		});
+
+		it('squashes combined characters in complex situations', () => {
+			const ts = new Typesetter({});
+			expect(ts.measureString('\uD83E\uDDD3'), equals(2));
+			expect(ts.measureString('\uD83C\uDFFD'), equals(2));
+			expect(
+				ts.measureString('\uD83E\uDDD3\uD83E\uDDD3\uD83C\uDFFD'),
+				equals(4),
+			);
+			expect(ts.measureString('\uD83C\uDFFD\uD83E\uDDD3'), equals(4));
 		});
 
 		it('does not squash combined characters if the terminal only supports them via its font', () => {

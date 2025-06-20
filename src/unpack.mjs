@@ -28,6 +28,7 @@ export function merge(tables) {
 	}
 	const ps = tables.map(() => 0);
 	const combined = [];
+	let cur = undefined;
 	for (let i = 0; Number.isFinite(i); ) {
 		let next = Number.POSITIVE_INFINITY;
 		for (let j = 0; j < n; ++j) {
@@ -40,7 +41,11 @@ export function merge(tables) {
 				next = data[p + 1][0];
 			}
 			if (data[p][1] !== INHERIT || j === n - 1) {
-				combined.push([i, data[p][1]]);
+				const v = data[p][1];
+				if (v !== cur) {
+					combined.push([i, v]);
+					cur = v;
+				}
 				break;
 			}
 		}
