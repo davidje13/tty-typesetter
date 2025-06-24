@@ -2,7 +2,7 @@
 
 Terminals have a variety of capabilities when it comes to rendering zero-width
 (such as combining) and wide characters (such as Emoji or CJK characters). Often
-this doesn't matter - the content will be layed out by the terminal in a
+this doesn't matter — the content will be laid out by the terminal in a
 (usually) nice way and the application does not need to worry about it, but it
 can become problematic in a few cases:
 
@@ -13,7 +13,7 @@ can become problematic in a few cases:
   makes progress. If characters have unexpected advance widths or the line has
   wrapped in unexpected ways, this can cause misalignments.
 - The application wishes to output a block of text with an indent, including for
-  lines which are soft-wrapped.
+  lines which are soft-wrapped, so it needs to apply its own line wrapping.
 
 There are various ways to address these issues, and in particular if `stdin` is
 available, it is possible to issue queries to the terminal to get the current
@@ -32,7 +32,7 @@ while keeping track of the cursor location.
 import { Typesetter } from 'tty-typesetter';
 
 // can pass in an optional custom environment object (defaults to process.env)
-const typesetter = new Typesetter();
+const ts = new Typesetter();
 
 const message = 'A hut (\uD83D\uDED6)\n';
 
@@ -43,7 +43,7 @@ process.stdout.write(message);
 process.stdout.write('\n');
 
 process.stdout.write('With tty-typesetter:\n');
-for (const line of typesetter.typeset(message)) {
+for (const line of ts.typeset(message)) {
   process.stdout.write(line);
 }
 process.stdout.write('\n');
@@ -62,29 +62,52 @@ Whereas in Apple's Terminal.app (which does support Unicode 16), it prints:
 ```js
 import { Typesetter } from 'tty-typesetter';
 
-const typesetter = new Typesetter();
+const ts = new Typesetter();
 
-w = typesetter.measureCodepoint(0x1f6d6); // 2
-w = typesetter.measureCharacter('\uD83D\uDED6'); // 2
-w = typesetter.measureString('A hut (\uD83D\uDED6)'); // 10 (or 9 in VSCode 1.100.3)
-w = typesetter.measureCodepoint(0x1f); // null
+w = ts.measureCodepoint(0x1f6d6); //              2 (or 1 in VSCode 1.100)
+w = ts.measureCharacter('\uD83D\uDED6'); //       2 (or 1 in VSCode 1.100)
+w = ts.measureString('A hut (\uD83D\uDED6)'); // 10 (or 9 in VSCode 1.100)
+w = ts.measureCodepoint(0x1f); //                null
 
-const ruler = typesetter.measureStringProgressive();
-w1 = ruler('A'); // 1
+const ruler = ts.measureStringProgressive();
+w1 = ruler('A'); //  1
 w2 = ruler(0x20); // 2
-w3 = ruler('h'); // 3
-w4 = ruler('u'); // 4
-w5 = ruler('t'); // 5
+w3 = ruler('h'); //  3
+w4 = ruler('u'); //  4
+w5 = ruler('t'); //  5
 w6 = ruler(0x1f); // 5
 ```
+
+Some terminals (but not many) support grapheme clusters (such as skin tone
+modifiers applied to emoji, country flags, or combined emoji like family
+groups). These cannot be measured by simply summing individual codepoints, so a
+"stateful" API is also available (this is used internally by `typeset`,
+`measureString` and `measureStringProgressive`):
+
+```js
+const state = ts.makeState({ skipAnsi: true });
+w = ts.measureCodepointStateful(0x1f468, state); //  2 (man)
+w = ts.measureCodepointStateful(0x200d, state); //   0 (+)
+w = ts.measureCodepointStateful(0x1f469, state); //  2 (woman)
+w = ts.measureCodepointStateful(0x200d, state); //   0 (+)
+w = ts.measureCodepointStateful(0x1f467, state); // -2 (girl)
+```
+
+The final character in this example completes a grapheme cluster, causing the
+"man" and "woman" emojis to collapse into a single glyph. This means the width
+is _reduced_ by adding the extra character, hence the negative value returned.
+
+On terminals which do not support grapheme clusters, `tty-typesetter` will only
+return non-negative numbers even when using `measureCodepointStateful`.
 
 ## Typesetting behaviour
 
 The bundled typesetting will add hard line wraps to maintain a specified column
 width. The line wraps are added at spaces, tabs, or optionally soft hyphens.
 Wide characters (e.g. emoji and ideographic characters) can also have line wraps
-immediately after them. Emoji sequences will not be broken up inside the
-sequence unless there is no other option.
+immediately after them. Grapheme clusters will not be broken up inside the
+cluster unless there is no other option (even in terminals which do not support
+rendering them as a single glyph).
 
 Note that this is far from a full implementation of the
 [Unicode line breaking algorithm](https://www.unicode.org/reports/tr14/) and
@@ -96,7 +119,7 @@ plan to move the terminal's cursor later:
 
 ```js
 let line = 1;
-for (const line of typesetter.typeset(message)) {
+for (const line of ts.typeset(message)) {
   process.stdout.write(line);
   if (line.endsWith('\n')) {
     line++;
@@ -112,7 +135,7 @@ Most of the behaviour of the typesetter can be customised (the values shown
 below are the defaults):
 
 ```js
-myTypesetter.typeset(message, {
+ts.typeset(message, {
   // add hard line wraps if lines are longer than this
   columnLimit: process.stdout.columns,
 
@@ -143,7 +166,7 @@ For example, if you want to indent every line and keep the tabstops inline with
 non-indented tabstops, you can use:
 
 ```js
-for (const line of typesetter.typeset(message, {
+for (const line of ts.typeset(message, {
   columnLimit: process.stdout.columns - 2,
   beginColumn: 2,
 })) {
@@ -176,7 +199,7 @@ You can find a summary of the behaviours of these terminals
 
 ## Known limitations
 
-Apple Terminal does not understand emoji sequences, but its font does. This
+Apple Terminal does not understand grapheme clusters, but its font does. This
 leads to strange output in some situations. For example
 `echo '1\t2\n\U1f9d3\U1f3fd\t2'` will print:
 
@@ -188,14 +211,15 @@ leads to strange output in some situations. For example
 The second line's tab width appears to be 6 instead of 8. This is because the
 terminal believes the 2 unicode characters `\U1f9d3` (older adult) and `\U1f3fd`
 (skin tone modifier) will be printed separately, occupying 2 cells each. But
-when the font actually renders the text, they are combined into a single symbol.
+when the font actually renders the text, they are combined into a single glyph.
 
 TTY Typesetter does not currently attempt to fix this, but even if/when it does,
 this introduces an artificial limit on the line width which cannot be fixed
 (because the terminal will soft wrap the line once it believes it is too long,
 even if the font can render the line in less space.
 
-Other terminals typically do not support multi-character emoji sequences at all.
+Some terminals fully support grapheme clusters (e.g. kitty), and some support
+them via the "Mode 2027" proposal.
 
 ## Differences with wcwidth
 
