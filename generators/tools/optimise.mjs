@@ -14,6 +14,7 @@ const DATA_DIR = join(
 );
 
 const files = [];
+const duplicates = [];
 const observedData = new Map();
 
 console.log('Loading files...');
@@ -24,10 +25,10 @@ for (const datFile of (await readdir(DATA_DIR)).sort()) {
 	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
 	const packedTable = data.trim().split('\n').pop();
 	const outFile = datFile.replace(/\.dat$/, '.mjs');
-	if (observedData.has(packedTable)) {
-		console.log(
-			`  ${datFile}: duplicate of ${observedData.get(packedTable).datFile}`,
-		);
+	const duplicate = observedData.get(packedTable);
+	if (duplicate) {
+		console.log(`  ${datFile}: duplicate of ${duplicate.datFile}`);
+		duplicates.push({ datFile, outFile, duplicate });
 	} else {
 		const table = unpack(packedTable);
 		console.log(`  ${datFile}: ${table.length} nodes`);
@@ -104,6 +105,17 @@ for (const { outFile, source, table, diff } of done) {
 		encoding: 'utf-8',
 		mode: 0o644,
 	});
+}
+for (const { outFile, duplicate } of duplicates) {
+	console.log(`  ${outFile}: duplicate of ${duplicate.outFile}`);
+	await writeFile(
+		join(DATA_DIR, outFile),
+		`export { data } from ${JSON.stringify('./' + duplicate.outFile)};\n`,
+		{
+			encoding: 'utf-8',
+			mode: 0o644,
+		},
+	);
 }
 
 console.log('Done.');

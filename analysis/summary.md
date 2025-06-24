@@ -14,10 +14,12 @@ and joining characters may be intentionally displayed to aid visibility.
 | Terminal | Zero Width / Combiner Support | Narrow Character Support | Wide Character Support | Emoji Sequence Support |
 | -------- | ----------------------------: | -----------------------: | ---------------------: | ---------------------: |
 | emacs 30.1 ansi-term | 85.6% | 99.8% | 99.8% | 10.7% |
+| tty-gnome-fedora | 98.5% | 100.0% | 99.8% | 10.7% |
 | JetBrains IDE Terminal 2023.3.8 | 0.8% | 12.4% | 44.0% | 4.1% |
 | kitty | 92.8% | 99.7% | 100.0% | 100.0% |
 | Linux TTY | 0.3% | 100.0% | 92.2% | 45.9% |
 | LXTerminal 0.4.0 | 98.5% | 100.0% | 99.8% | 10.7% |
+| tty-ptyxis | 98.5% | 100.0% | 99.8% | 10.7% |
 | rxvt-unicode 9.26 | 91.5% | 100.0% | 96.4% | 10.7% |
 | Warp 0.2025.06 | 97.2% | 99.9% | 99.8% | 10.7% |
 | xfce4-terminal 0.8.10 | 92.0% | 100.0% | 99.8% | 10.7% |
