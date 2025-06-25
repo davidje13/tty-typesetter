@@ -185,12 +185,12 @@ This project currently has data for:
 - macOS's Terminal.app (Apple_Terminal)
 - VSCode's built-in terminal (and dev container terminal)
 - JetBrains' editor's built-in terminal (JetBrains-JediTerm)
-- LXTerminal
+- VTE-based terminals (Gnome Terminal, LXTerminal, Ptyxis, Xfce Terminal)
 - Warp
 - kitty
 - rxvt-unicode
 - xterm
-- eterm
+- Emacs ansi-eterm (eterm)
 - Unicode 16, following the rules originally defined by Markus Kuhn for
   `wcwidth` (used as a fallback if the terminal is not recognised)
 
