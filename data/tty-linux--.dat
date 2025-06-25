@@ -1,9 +1,5 @@
 name=Linux TTY
 TERM=linux
-TERM_PROGRAM=
-TERM_PROGRAM_VERSION=
-TERMINAL_EMULATOR=
-VTE_VERSION=
 LANG=en_GB.UTF-8
 platform=linux
 sequences=none

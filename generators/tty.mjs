@@ -114,10 +114,14 @@ for (const key of [
 	'TERM_PROGRAM',
 	'TERM_PROGRAM_VERSION',
 	'TERMINAL_EMULATOR',
+	'PTYXIS_VERSION',
 	'VTE_VERSION',
 	'LANG',
 ]) {
-	process.stdout.write(`${key}=${process.env[key] ?? ''}\n`);
+	const value = process.env[key];
+	if (value !== undefined) {
+		process.stdout.write(`${key}=${value}\n`);
+	}
 }
 process.stdout.write(`platform=${process.platform}\n`);
 process.stdout.write(`sequences=${sequenceSupport}\n`);
