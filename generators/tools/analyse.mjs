@@ -1,8 +1,8 @@
 #!/usr/bin/env -S node
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { merge, unpack } from '../../src/unpack.mjs';
+import { merge } from '../../src/unpack.mjs';
 import { strings } from '../../data/strings.mjs';
 import { notesTable } from '../notes.mjs';
 import {
@@ -18,9 +18,9 @@ import {
 } from './read-strings.mjs';
 import { toLink, toTable } from './html.mjs';
 import { codepointCount, IGNORE, UNSUPPORTED } from '../../src/constants.mjs';
+import { readAllDataFiles } from './data-files.mjs';
 
 const SELF_DIR = dirname(new URL(import.meta.url).pathname);
-const DATA_DIR = join(SELF_DIR, '..', '..', 'data');
 const ANALYSIS_DIR = join(SELF_DIR, '..', '..', 'analysis');
 
 const unicodeVersion = '16.0.0';
@@ -46,35 +46,15 @@ const uAge = readOrdered(uAgeTable);
 const files = [];
 let canonicalTable;
 
-const dirListing = await readdir(DATA_DIR);
-for (const datFile of dirListing) {
-	if (!datFile.endsWith('.dat')) {
-		continue;
-	}
-	if (!dirListing.includes(datFile.replace(/\.dat$/, '.mjs'))) {
-		continue; // file was not converted to mjs - probably skipped as a duplicate
-	}
-	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
-	const lines = data.trim().split('\n');
-	const packedTable = lines.pop();
-	const keyValues = new Map(
-		lines.map((ln) => {
-			const p = ln.indexOf('=');
-			return [ln.substring(0, p), ln.substring(p + 1)];
-		}),
-	);
-	const table = unpack(packedTable);
+for await (const data of readAllDataFiles()) {
 	files.push({
-		isTTY: datFile.startsWith('tty-'),
-		name: keyValues.get('name') || datFile.replace(/\.dat$/, ''),
-		keyValues,
-		w: readRandomAccess(table),
-		table,
+		...data,
+		w: readRandomAccess(data.table),
 		codepointCounts: new Map(),
 		sequenceCount: 0,
 	});
-	if (datFile === `cam-${shortUV}.dat`) {
-		canonicalTable = table;
+	if (data.datFile === `cam-${shortUV}.dat`) {
+		canonicalTable = data.table;
 	}
 }
 if (!canonicalTable) {
@@ -298,10 +278,10 @@ ${files
 			cells.push(percent(file.codepointCounts.get(i) / codepointTotals.get(i)));
 		}
 		let sequences = percent(file.sequenceCount / sequenceTotal);
-		if (file.keyValues.get('sequences') === 'font') {
+		if (file.sequences === 'font') {
 			sequences += '<sup>1</sup>';
 		}
-		if (file.keyValues.get('sequences') === 'mode-2027') {
+		if (file.sequences === 'mode-2027') {
 			sequences += '<sup>2</sup>';
 		}
 		cells.push(sequences);

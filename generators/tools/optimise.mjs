@@ -1,45 +1,27 @@
 #!/usr/bin/env -S node
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import { Compressor } from './Compressor.mjs';
 import { readNextChangeCharacter, readOrdered } from './readers.mjs';
-import { unpack } from '../../src/unpack.mjs';
-
-const DATA_DIR = join(
-	dirname(new URL(import.meta.url).pathname),
-	'..',
-	'..',
-	'data',
-);
+import { readAllDataFiles } from './data-files.mjs';
 
 const files = [];
 const duplicates = [];
 const observedData = new Map();
 
 console.log('Loading files...');
-for (const datFile of (await readdir(DATA_DIR)).sort()) {
-	if (!datFile.endsWith('.dat')) {
-		continue;
-	}
-	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
-	const packedTable = data.trim().split('\n').pop();
-	const outFile = datFile.replace(/\.dat$/, '.mjs');
-	const duplicate = observedData.get(packedTable);
+for await (const data of readAllDataFiles()) {
+	const duplicate = observedData.get(data.packedTable);
 	if (duplicate) {
-		console.log(`  ${datFile}: duplicate of ${duplicate.datFile}`);
-		duplicates.push({ datFile, outFile, duplicate });
+		console.log(`  ${data.datFile}: duplicate of ${duplicate.datFile}`);
+		duplicates.push({ ...data, duplicate });
 	} else {
-		const table = unpack(packedTable);
-		console.log(`  ${datFile}: ${table.length} nodes`);
-		files.push({
-			datFile,
-			outFile,
-			table,
-			source: null,
-			diff: null,
+		console.log(`  ${data.datFile}: ${data.table.length} nodes`);
+		files.push({ ...data, source: null, diff: null });
+		observedData.set(data.packedTable, {
+			datFile: data.datFile,
+			mjsFile: data.mjsFile,
 		});
-		observedData.set(packedTable, { datFile, outFile });
 	}
 }
 observedData.clear();
@@ -90,31 +72,25 @@ while (remaining.size > 0) {
 }
 
 console.log('Writing files...');
-for (const { outFile, source, table, diff } of done) {
+for (const { mjsFile, mjsFilePath, source, table, diff } of done) {
 	let content;
 	if (source) {
 		console.log(
-			`  ${outFile}: ${diff.length} nodes, inherit from ${source.outFile}`,
+			`  ${mjsFile}: ${diff.length} nodes, inherit from ${source.mjsFile}`,
 		);
-		content = `import { data as base } from ${JSON.stringify('./' + source.outFile)};\n\nexport const data = [${JSON.stringify(pack(diff))}, ...base];\n`;
+		content = `import { data as base } from ${JSON.stringify('./' + source.mjsFile)};\n\nexport const data = [${JSON.stringify(pack(diff))}, ...base];\n`;
 	} else {
-		console.log(`  ${outFile}: ${table.length} nodes`);
+		console.log(`  ${mjsFile}: ${table.length} nodes`);
 		content = `export const data = [${JSON.stringify(pack(table))}];\n`;
 	}
-	await writeFile(join(DATA_DIR, outFile), content, {
-		encoding: 'utf-8',
-		mode: 0o644,
-	});
+	await writeFile(mjsFilePath, content, { encoding: 'utf-8', mode: 0o644 });
 }
-for (const { outFile, duplicate } of duplicates) {
-	console.log(`  ${outFile}: duplicate of ${duplicate.outFile}`);
+for (const { mjsFile, mjsFilePath, duplicate } of duplicates) {
+	console.log(`  ${mjsFile}: duplicate of ${duplicate.mjsFile}`);
 	await writeFile(
-		join(DATA_DIR, outFile),
-		`export { data } from ${JSON.stringify('./' + duplicate.outFile)};\n`,
-		{
-			encoding: 'utf-8',
-			mode: 0o644,
-		},
+		mjsFilePath,
+		`export { data } from ${JSON.stringify('./' + duplicate.mjsFile)};\n`,
+		{ encoding: 'utf-8', mode: 0o644 },
 	);
 }
 
@@ -135,6 +111,7 @@ function recompress(data, base) {
 	) {
 		compressor.add(char, w(char), wBase(char));
 	}
+	compressor.close();
 	return all;
 }
 

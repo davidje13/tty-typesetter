@@ -1,14 +1,13 @@
 #!/usr/bin/env -S node
 
-import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import { strings as oldStrings } from './old-strings.mjs';
 import { codepointsToString, explodeSequenceKeys } from './read-strings.mjs';
 import { Compressor } from './Compressor.mjs';
 import { strings } from '../../data/strings.mjs';
 import { codepointCount, UNSUPPORTED } from '../../src/constants.mjs';
 import { readRandomAccess } from './readers.mjs';
-import { unpack } from '../../src/unpack.mjs';
+import { readAllDataFiles } from './data-files.mjs';
 
 const newStrings = explodeSequenceKeys(strings);
 
@@ -23,24 +22,12 @@ if (
 	process.exit(0);
 }
 
-const DATA_DIR = join(
-	dirname(new URL(import.meta.url).pathname),
-	'..',
-	'..',
-	'data',
-);
-
-for (const datFile of await readdir(DATA_DIR)) {
-	if (!datFile.endsWith('.dat')) {
-		continue;
-	}
-	console.log(`Remapping ${datFile}...`);
-	const data = await readFile(join(DATA_DIR, datFile), { encoding: 'utf-8' });
-	const lines = data.trim().split('\n');
-	const oldLookup = readRandomAccess(unpack(lines.pop()));
+for await (const data of readAllDataFiles()) {
+	console.log(`Remapping ${data.datFile}...`);
+	const oldLookup = readRandomAccess(data.table);
 
 	let out = [];
-	for (const line of lines) {
+	for (const line of data.rawKeyValues) {
 		out.push(line + '\n');
 	}
 	const compressor = new Compressor((char, w) =>
@@ -60,7 +47,7 @@ for (const datFile of await readdir(DATA_DIR)) {
 	}
 	compressor.close();
 	out.push('\n');
-	await writeFile(join(DATA_DIR, datFile), out.join(''), {
+	await writeFile(data.datFilePath, out.join(''), {
 		encoding: 'utf-8',
 		mode: 0o644,
 	});
