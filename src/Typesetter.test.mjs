@@ -86,18 +86,12 @@ describe('Typesetter', () => {
 		});
 
 		it('does not squash grapheme clusters if the terminal only supports them via its font', () => {
-			const ts = new Typesetter({
-				TERM_PROGRAM: 'Apple_Terminal',
-				TERM_PROGRAM_VERSION: '455.1',
-			});
+			const ts = new Typesetter(APPLE_TERMINAL);
 			expect(ts.measureString('\uD83E\uDDD3\uD83C\uDFFD'), equals(4));
 		});
 
 		it('does not squash grapheme clusters if the terminal does not support it', () => {
-			const ts = new Typesetter({
-				TERM_PROGRAM: 'vscode',
-				TERM_PROGRAM_VERSION: '1.100.3',
-			});
+			const ts = new Typesetter(VSCODE100);
 			expect(ts.measureString('\uD83E\uDDD3\uD83C\uDFFD'), equals(4));
 		});
 	});
@@ -134,123 +128,291 @@ describe('Typesetter', () => {
 	});
 
 	describe('typeset', () => {
-		it('adds hard line breaks at word boundaries to fit the column width', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset(
-				'this is my very long message which needs to wrap.',
-				{ columnLimit: 11 },
-			);
-			const expected = [
-				'this is my \n',
-				'very long \n',
-				'message \n',
-				'which needs\n',
-				'to wrap.',
-			];
-			expect([...actual], equals(expected));
-		});
+		it(
+			'wraps lines',
+			({ environment = {}, options = {}, input, sizes }) => {
+				const ts = new Typesetter(environment);
+				for (const [columnLimit, expected] of sizes) {
+					const actual = ts.typeset(input, { columnLimit, ...options });
+					expect([...actual].join(''), equals(expected));
+				}
+			},
+			{
+				parameters: [
+					{
+						name: 'adds hard line breaks at word boundaries',
+						input: 'this is my very long message which needs to wrap.',
+						sizes: [
+							[11, 'this is my \nvery long \nmessage \nwhich needs\nto wrap.'],
+						],
+					},
+					{
+						name: 'ignores additional spaces after wrapping',
+						input: 'stuff  which                  is     overly  spaced-out',
+						sizes: [[14, 'stuff  which  \nis     overly \nspaced-out']],
+					},
+					{
+						name: 'preserves existing line breaks',
+						input: 'this is a message\nwhich already has a newline',
+						sizes: [[16, 'this is a \nmessage\nwhich already \nhas a newline']],
+					},
+					{
+						name: 'preserves existing carriage returns',
+						input: 'this is a message\rwhich has a carriage return',
+						sizes: [[16, 'this is a \nmessage\rwhich has a \ncarriage return']],
+					},
+					{
+						name: 'wraps at soft hyphens and displays them',
+						input: 'Super\xadcali\xadfragilistic\xadexpiali\xaddocious',
+						sizes: [[12, 'Supercali-\nfragilistic-\nexpiali-\ndocious']],
+					},
+					{
+						name: 'wraps inside words when the console is too narrow',
+						input: 'Super\xadcali\xadfragilistic\xadexpiali\xaddocious',
+						sizes: [[8, 'Super-\ncali-\nfragilis\ntic-\nexpiali-\ndocious']],
+					},
+					{
+						name: 'preserves soft hyphens and does not use them for wrapping if softHyphens is false',
+						input: 'Super\xadcali\xadfragilistic\xadexpiali\xaddocious',
+						options: { softHyphens: false },
+						sizes: [
+							[12, 'Super\xadcali\xadf\nragilistic\xade\nxpiali\xaddocio\nus'],
+						],
+					},
+					{
+						name: 'wraps at tabs',
+						input: 'a\t\t\t\t  \tb',
+						sizes: [[10, 'a       \nb']],
+					},
+					{
+						name: 'includes wrapped tabs if niceWrap is false',
+						input: 'a\t\t\t\t  \tb',
+						options: { niceWrap: false },
+						sizes: [[10, 'a       \n        \n        b']],
+					},
+					{
+						name: 'wraps after wide characters',
+						columnLimit: 9,
+						input: '这是一条测试消息',
+						sizes: [
+							[9, '这是一条\n测试消息'],
+							[4, '这是\n一条\n测试\n消息'],
+						],
+					},
+					//{ // TODO
+					//	name: 'avoids wrapping inside zwj grapheme clusters (with support)',
+					//	environment: KITTY,
+					//	input: 'cluster 👨‍👩‍👧‍👦',
+					//	sizes: [
+					//		[11, 'cluster 👨‍👩‍👧‍👦'],
+					//		[10, 'cluster 👨‍👩‍👧‍👦'],
+					//		[9, 'cluster \n👨‍👩‍👧‍👦'],
+					//	],
+					//},
+					//{ // TODO
+					//	name: 'avoids wrapping inside zwj grapheme clusters (without support)',
+					//	environment: VSCODE100,
+					//	input: 'cluster 👨‍👩‍👧‍👦',
+					//	sizes: [
+					//		[16, 'cluster 👨‍👩‍👧‍👦'],
+					//		[11, 'cluster \n👨‍👩‍👧‍👦'],
+					//		[10, 'cluster \n👨‍👩‍👧‍👦'],
+					//		[9, 'cluster \n👨‍👩‍👧‍👦'],
+					//	],
+					//},
+					{
+						name: 'avoids wrapping inside modifier grapheme clusters (with support)',
+						environment: KITTY,
+						input: 'skin tone 🧓🏽',
+						sizes: [
+							[13, 'skin tone 🧓🏽'],
+							[12, 'skin tone 🧓🏽'],
+							[11, 'skin tone \n🧓🏽'],
+						],
+					},
+					//{ // TODO
+					//	name: 'avoids wrapping inside modifier grapheme clusters (without support)',
+					//	environment: VSCODE100,
+					//	input: 'skin tone 🧓🏽',
+					//	sizes: [
+					//		[14, 'skin tone 🧓🏽'],
+					//		[13, 'skin tone \n🧓🏽'],
+					//		[12, 'skin tone \n🧓🏽'],
+					//		[11, 'skin tone \n🧓🏽'],
+					//	],
+					//},
+					{
+						name: 'avoids wrapping inside flag grapheme clusters (with support)',
+						environment: KITTY,
+						input: 'flag 🇬🇧',
+						sizes: [
+							[7, 'flag 🇬🇧'],
+							[6, 'flag \n🇬🇧'],
+							[5, 'flag \n🇬🇧'],
+						],
+					},
+					{
+						name: 'avoids wrapping inside flag grapheme clusters (without support)',
+						environment: VSCODE100,
+						input: 'flag 🇬🇧',
+						sizes: [
+							[7, 'flag 🇬🇧'],
+							[6, 'flag \n🇬🇧'],
+							[5, 'flag \n🇬🇧'],
+						],
+					},
+					{
+						name: 'ignores ANSI escape sequences for line wrapping',
+						input: 'this is \x1b[32mgreen\x1b[0m text',
+						sizes: [[14, 'this is \x1b[32mgreen\x1b[0m \ntext']],
+						sizes: [[13, 'this is \x1b[32mgreen\x1b[0m\ntext']],
+						sizes: [[12, 'this is \n\x1b[32mgreen\x1b[0m text']],
+					},
+					{
+						name: 'includes ANSI escape sequences if skipAnsi is false',
+						input: 'this is \x1b[32mgreen\x1b[0m text',
+						options: { skipAnsi: false },
+						sizes: [[20, 'this is \x1b[32mgreen\x1b[0m\ntext']],
+						sizes: [[14, 'this is \n\x1b[32mgreen\x1b[0m \ntext']],
+					},
+					{
+						name: 'outputs one character per line if the column limit is too small',
+						input: 'foo bar',
+						sizes: [[0, 'f\no\no\nb\na\nr']],
+					},
+					{
+						name: 'uses basic line wrapping if niceWrap is false',
+						input: 'this is my very long message which needs to wrap.',
+						options: { niceWrap: false },
+						sizes: [
+							[10, 'this is my\n very long\n message w\nhich needs\n to wrap.'],
+						],
+					},
+					{
+						name: 'reduces the available width if beginColumn is set',
+						input: 'this is my very long message which needs to wrap.',
+						options: { beginColumn: 3 },
+						sizes: [
+							[
+								10,
+								'this is\nmy very\nlong \nmessage\nwhich \nneeds \nto \nwrap.',
+							],
+						],
+					},
+					{
+						name: 'uses wrapColumn for subsequent lines',
+						input: 'this is my very long message which needs to wrap.',
+						options: { beginColumn: 8, wrapColumn: 0 },
+						sizes: [
+							[20, 'this is my \nvery long message \nwhich needs to wrap.'],
+						],
+					},
+					{
+						name: 'adds an initial newline if there is no space in the first line',
+						input: 'this is my very long message which needs to wrap.',
+						options: { beginColumn: 20, wrapColumn: 0 },
+						sizes: [
+							[20, '\nthis is my very long\nmessage which needs \nto wrap.'],
+						],
+					},
+					//{ // TODO
+					//	name: 'wraps the first word if there is insufficient space on the first line',
+					//	input: 'this is my very long message which needs to wrap.',
+					//	options: { beginColumn: 18, wrapColumn: 0 },
+					//	sizes: [
+					//		[20, '\nthis is my very long\nmessage which needs \nto wrap.'],
+					//	],
+					//},
+					{
+						name: 'splits the first word if there is insufficient space for it even when wrapping',
+						input: 'verylongword',
+						options: { beginColumn: 4, wrapColumn: 0 },
+						sizes: [[6, 've\nrylong\nword']],
+					},
+				],
+			},
+		);
 
-		it('allows wrapping after soft hyphens and removes them if line wrapping does not occur', () => {
-			const ts = new Typesetter({});
-			const input = 'Super\xadcali\xadfragilistic\xadexpiali\xaddocious';
-			expect(
-				[...ts.typeset(input, { columnLimit: 12 })],
-				equals(['Supercali-\n', 'fragilistic-\n', 'expiali-\n', 'docious']),
-			);
-
-			expect(
-				[...ts.typeset(input, { columnLimit: 8 })],
-				equals([
-					'Super-\n',
-					'cali-\n',
-					'fragilis\n',
-					'tic-\n',
-					'expiali-\n',
-					'docious',
-				]),
-			);
-		});
-
-		it('returns one character per line if the column limit is too small', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset('foo bar', { columnLimit: 0 });
-			expect([...actual], equals(['f\n', 'o\n', 'o\n', 'b\n', 'a\n', 'r']));
-		});
-
-		it('uses basic line wrapping if niceWrap is false', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset(
-				'this is my very long message which needs to wrap.',
-				{ columnLimit: 10, niceWrap: false },
-			);
-			const expected = [
-				'this is my\n',
-				' very long\n',
-				' message w\n',
-				'hich needs\n',
-				' to wrap.',
-			];
-			expect([...actual], equals(expected));
-		});
-
-		it('replaces tabs with spaces', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset('a\tbcdefghi\tc\t\td', { columnLimit: 100 });
-			expect(
-				[...actual],
-				equals(['a       bcdefghi        c               d']),
-			);
-		});
-
-		it('accounts for wide characters when calculating tab position', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset('\uD83D\uDED6\tb', { columnLimit: 100 });
-			expect([...actual], equals(['\uD83D\uDED6      b']));
-		});
-
-		it('wraps at tabs', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset('a\t\t\t\t  \tb', { columnLimit: 10 });
-			expect([...actual], equals(['a       \n', 'b']));
-		});
-
-		it('includes wrapped tabs if niceWrap is false', () => {
-			const ts = new Typesetter({});
-			const actual = ts.typeset('a\t\t\t\t  \tb', {
-				columnLimit: 10,
-				niceWrap: false,
+		describe('tabs', () => {
+			it('replaces tabs with spaces', () => {
+				const ts = new Typesetter({});
+				const actual = ts.typeset('a\tbcdefghi\tc\t\td\na\tb', {
+					columnLimit: 100,
+				});
+				expect(
+					[...actual],
+					equals(['a       bcdefghi        c               d\n', 'a       b']),
+				);
 			});
-			expect([...actual], equals(['a       \n', '        \n', '        b']));
+
+			it('uses tabSize to determine tabstop positions', () => {
+				const ts = new Typesetter({});
+				const actual = ts.typeset('a\tb\tccc\td', {
+					columnLimit: 100,
+					tabSize: 3,
+				});
+				expect([...actual], equals(['a  b  ccc   d']));
+			});
+
+			it('uses beginColumn to determine tabstop positions', () => {
+				const ts = new Typesetter({});
+				const actual = ts.typeset('a\tb\tc\na\tb', {
+					columnLimit: 100,
+					beginColumn: 3,
+				});
+				expect([...actual], equals(['a    b       c\n', 'a    b']));
+			});
+
+			it('uses wrapColumn for subsequent lines', () => {
+				const ts = new Typesetter({});
+				const actual = ts.typeset('a\tb\tc\td\te\nf\tg', {
+					columnLimit: 15,
+					wrapColumn: 3,
+				});
+				expect(
+					[...actual],
+					equals(['a       b\n', 'c    d\n', 'e\n', 'f    g']),
+				);
+			});
+
+			it('accounts for wide characters when calculating tab position', () => {
+				const ts = new Typesetter({});
+				const actual = ts.typeset('\uD83D\uDED6\tb', { columnLimit: 100 });
+				expect([...actual], equals(['\uD83D\uDED6      b']));
+			});
 		});
 
-		it('adds spaces after unsupported characters', () => {
-			const ts = new Typesetter({
-				TERM_PROGRAM: 'vscode',
-				TERM_PROGRAM_VERSION: '1.100.3',
+		describe('padding unsupported characters', () => {
+			it('adds spaces after unsupported characters', () => {
+				const ts = new Typesetter(VSCODE100);
+				const actual = ts.typeset('A hut (\uD83D\uDED6)', { columnLimit: 100 });
+				expect([...actual], equals(['A hut (\uD83D\uDED6 )']));
 			});
-			const actual = ts.typeset('A hut (\uD83D\uDED6)', { columnLimit: 100 });
-			expect([...actual], equals(['A hut (\uD83D\uDED6 )']));
-		});
 
-		it('does not add spaces after unsupported characters if configured', () => {
-			const ts = new Typesetter({
-				TERM_PROGRAM: 'vscode',
-				TERM_PROGRAM_VERSION: '1.100.3',
+			it('does not add spaces after unsupported characters if configured', () => {
+				const ts = new Typesetter(VSCODE100);
+				const actual = ts.typeset('A hut (\uD83D\uDED6)', {
+					columnLimit: 100,
+					padUnsupportedCharacters: false,
+				});
+				expect([...actual], equals(['A hut (\uD83D\uDED6)']));
 			});
-			const actual = ts.typeset('A hut (\uD83D\uDED6)', {
-				columnLimit: 100,
-				padUnsupportedCharacters: false,
-			});
-			expect([...actual], equals(['A hut (\uD83D\uDED6)']));
-		});
 
-		it('does not add spaces after supported characters', () => {
-			const ts = new Typesetter({
-				TERM_PROGRAM: 'Apple_Terminal',
-				TERM_PROGRAM_VERSION: '455.1',
+			it('does not add spaces after supported characters', () => {
+				const ts = new Typesetter(APPLE_TERMINAL);
+				const actual = ts.typeset('A hut (\uD83D\uDED6)', { columnLimit: 100 });
+				expect([...actual], equals(['A hut (\uD83D\uDED6)']));
 			});
-			const actual = ts.typeset('A hut (\uD83D\uDED6)', { columnLimit: 100 });
-			expect([...actual], equals(['A hut (\uD83D\uDED6)']));
 		});
 	});
 });
+
+const KITTY = { TERM: 'xterm-kitty' };
+const VSCODE100 = {
+	TERM_PROGRAM: 'vscode',
+	TERM_PROGRAM_VERSION: '1.100.3',
+};
+const APPLE_TERMINAL = {
+	TERM_PROGRAM: 'Apple_Terminal',
+	TERM_PROGRAM_VERSION: '455.1',
+};

@@ -157,7 +157,6 @@ non-indented tabstops, you can use:
 
 ```js
 for (const line of ts.typeset(message, {
-  columnLimit: process.stdout.columns - 2,
   beginColumn: 2,
 })) {
   process.stdout.write('  ' + line);
@@ -165,7 +164,15 @@ for (const line of ts.typeset(message, {
 ```
 
 Alternatively if you just want to indent the lines and allow their tabstops to
-be indented with them, you can omit `beginColumn`.
+be indented with them, you can change the `columnLimit` instead:
+
+```js
+for (const line of ts.typeset(message, {
+  columnLimit: process.stdout.columns - 2,
+})) {
+  process.stdout.write('  ' + line);
+}
+```
 
 ## Supported terminals
 
