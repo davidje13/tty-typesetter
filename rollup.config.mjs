@@ -14,7 +14,7 @@ export default [
 		plugins,
 	},
 	{
-		input: 'generators/tty.mjs',
+		input: 'src/measure-tty.mjs',
 		output: { file: 'build/bin.mjs', format: 'esm' },
 		plugins,
 	},

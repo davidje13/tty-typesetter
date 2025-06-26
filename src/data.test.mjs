@@ -1,4 +1,4 @@
-import { readAllDataFiles } from '../generators/tools/data-files.mjs';
+import { readAllDataFiles } from '../dev-utils/data-files.mjs';
 import { UNSUPPORTED } from './constants.mjs';
 import { loadTable } from './data.mjs';
 

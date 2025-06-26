@@ -1,12 +1,12 @@
 #!/usr/bin/env -S node
 
-import { strings } from '../data/strings.mjs';
-import { Compressor } from './tools/Compressor.mjs';
+import { compressedSequences } from '../data/grapheme-clusters.mjs';
+import { codepointCount, UNSUPPORTED } from './constants.mjs';
 import {
 	codepointsToString,
-	explodeSequenceKeys,
-} from './tools/read-strings.mjs';
-import { codepointCount, UNSUPPORTED } from '../src/constants.mjs';
+	explodeGraphemeClusterKeys,
+} from './read-grapheme-clusters.mjs';
+import { Compressor } from './Compressor.mjs';
 
 const flags = process.argv.slice(2);
 
@@ -84,7 +84,7 @@ const tmAfterCodepoints = performance.now();
 // note: in practice, Apple's terminal believes it does not support these
 // (and wraps as if they were not supported), but the renderer actually does support some
 if (sequenceSupport === 'full') {
-	const seqs = explodeSequenceKeys(strings);
+	const seqs = explodeGraphemeClusterKeys(compressedSequences);
 	for await (const { w, i } of batched(
 		0,
 		seqs.length,

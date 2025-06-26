@@ -3,22 +3,22 @@
 import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { merge } from '../../src/unpack.mjs';
-import { strings } from '../../data/strings.mjs';
-import { notesTable } from '../notes.mjs';
+import { codepointCount, IGNORE, UNSUPPORTED } from '../../src/constants.mjs';
+import {
+	codepointsToString,
+	explodeGraphemeClusterKey,
+	printGraphemeClusterKey,
+} from '../../src/read-grapheme-clusters.mjs';
+import { toLink, toTable } from '../../dev-utils/html.mjs';
+import { readAllDataFiles } from '../../dev-utils/data-files.mjs';
+import { loadUnicodeRangeData } from '../../dev-utils/unicode-data.mjs';
 import {
 	readNextChangeCharacter,
 	readOrdered,
 	readRandomAccess,
-} from './readers.mjs';
-import { loadUnicodeRangeData } from './unicode-data.mjs';
-import {
-	codepointsToString,
-	explodeSequenceKey,
-	printSequenceKey,
-} from './read-strings.mjs';
-import { toLink, toTable } from './html.mjs';
-import { codepointCount, IGNORE, UNSUPPORTED } from '../../src/constants.mjs';
-import { readAllDataFiles } from './data-files.mjs';
+} from '../../dev-utils/readers.mjs';
+import { compressedSequences } from '../../data/grapheme-clusters.mjs';
+import { notesTable } from '../notes.mjs';
 
 const SELF_DIR = dirname(new URL(import.meta.url).pathname);
 const ANALYSIS_DIR = join(SELF_DIR, '..', '..', 'analysis');
@@ -180,11 +180,11 @@ const sequenceTable = {
 
 let i = codepointCount;
 let n = codepointCount;
-const seqs = strings.split(' ');
+const seqs = compressedSequences.split(' ');
 for (let p = 0; p < seqs.length; ++p) {
 	const seq = seqs[p];
-	const entries = explodeSequenceKey(seq);
-	const name = p + ': ' + printSequenceKey(seq);
+	const entries = explodeGraphemeClusterKey(seq);
+	const name = p + ': ' + printGraphemeClusterKey(seq);
 	while (i < n + entries.length) {
 		const nextI = Math.min(next(i), n + entries.length);
 		const rangeBegin = i - n;

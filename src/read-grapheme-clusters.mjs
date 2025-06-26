@@ -1,4 +1,4 @@
-import { RANGE_SHORTHANDS, splitKey } from '../../src/sequence-key.mjs';
+import { RANGE_SHORTHANDS, splitKey } from './cluster-key.mjs';
 
 const NORM = new Map();
 for (const [k, vs] of RANGE_SHORTHANDS) {
@@ -7,18 +7,17 @@ for (const [k, vs] of RANGE_SHORTHANDS) {
 	}
 }
 
-export function makeSequenceKey(seq) {
-	let key = seq
+export function makeGraphemeClusterKey(seq) {
+	return seq
 		.map((v) => NORM.get(v) ?? v.toString(36).padStart(4, '0'))
 		.join('');
-	return key;
 }
 
-export function explodeSequenceKeys(keys) {
-	return keys.split(' ').flatMap(explodeSequenceKey);
+export function explodeGraphemeClusterKeys(keys) {
+	return keys.split(' ').flatMap(explodeGraphemeClusterKey);
 }
 
-export function explodeSequenceKey(key) {
+export function explodeGraphemeClusterKey(key) {
 	const result = [];
 	explode(splitKey(key), 0, result, []);
 	return result;
@@ -28,7 +27,7 @@ export function codepointsToString(codepoints) {
 	return codepoints.map((c) => String.fromCodePoint(c)).join('');
 }
 
-export function printSequenceKey(key) {
+export function printGraphemeClusterKey(key) {
 	return splitKey(key)
 		.map(
 			({ codepoints, optional }) =>

@@ -53,12 +53,12 @@ describe('Typesetter', () => {
 			);
 		});
 
-		it('squashes combined characters', () => {
+		it('squashes grapheme clusters', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureString('\uD83E\uDDD3\uD83C\uDFFD'), equals(2));
 		});
 
-		it('squashes combined characters in complex situations', () => {
+		it('squashes grapheme clusters in complex situations', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureString('\uD83E\uDDD3'), equals(2));
 			expect(ts.measureString('\uD83C\uDFFD'), equals(2));
@@ -85,7 +85,7 @@ describe('Typesetter', () => {
 			);
 		});
 
-		it('does not squash combined characters if the terminal only supports them via its font', () => {
+		it('does not squash grapheme clusters if the terminal only supports them via its font', () => {
 			const ts = new Typesetter({
 				TERM_PROGRAM: 'Apple_Terminal',
 				TERM_PROGRAM_VERSION: '455.1',
@@ -93,7 +93,7 @@ describe('Typesetter', () => {
 			expect(ts.measureString('\uD83E\uDDD3\uD83C\uDFFD'), equals(4));
 		});
 
-		it('does not squash combined characters if the terminal does not support it', () => {
+		it('does not squash grapheme clusters if the terminal does not support it', () => {
 			const ts = new Typesetter({
 				TERM_PROGRAM: 'vscode',
 				TERM_PROGRAM_VERSION: '1.100.3',
@@ -121,7 +121,7 @@ describe('Typesetter', () => {
 			expect(fn('m'), equals(2));
 		});
 
-		it('squashes combined characters', () => {
+		it('squashes grapheme clusters', () => {
 			const fn = new Typesetter({}).measureStringProgressive();
 			expect(fn(0x1f468), equals(2)); // man
 			expect(fn(0x200d), equals(2)); // +

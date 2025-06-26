@@ -1,9 +1,9 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { unpack } from '../../src/unpack.mjs';
+import { unpack } from '../src/unpack.mjs';
 
 const SELF_DIR = dirname(new URL(import.meta.url).pathname);
-const DATA_DIR = join(SELF_DIR, '..', '..', 'data');
+const DATA_DIR = join(SELF_DIR, '..', 'data');
 
 export async function* readAllDataFiles() {
 	for (const datFile of (await readdir(DATA_DIR)).sort()) {

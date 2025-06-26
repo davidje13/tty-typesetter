@@ -51,11 +51,11 @@ process.stdout.write('\n');
 
 In VSCode 1.100 (which does not support Unicode 16), this prints:
 
-![Screenshot of VSCode 1.100 showing overlapping characters without tty-typesetter](screenshots/vscode100.png)
+![Screenshot of VSCode 1.100 showing overlapping characters without tty-typesetter](./docs/screenshots/vscode100.png)
 
 Whereas in Apple's Terminal.app (which does support Unicode 16), it prints:
 
-![Screenshot of Apple Terminal showing the same output with and without tty-typesetter](screenshots/apple.png)
+![Screenshot of Apple Terminal showing the same output with and without tty-typesetter](./docs/screenshots/apple.png)
 
 ## Raw character widths
 

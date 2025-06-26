@@ -1,9 +1,12 @@
 #!/usr/bin/env -S node
 
 import { writeFile } from 'node:fs/promises';
-import { Compressor } from './Compressor.mjs';
-import { readNextChangeCharacter, readOrdered } from './readers.mjs';
-import { readAllDataFiles } from './data-files.mjs';
+import { Compressor } from '../../src/Compressor.mjs';
+import { readAllDataFiles } from '../../dev-utils/data-files.mjs';
+import {
+	readNextChangeCharacter,
+	readOrdered,
+} from '../../dev-utils/readers.mjs';
 
 const files = [];
 const duplicates = [];

@@ -1,5 +1,5 @@
-import { merge } from '../../src/unpack.mjs';
-import { INHERIT } from '../../src/constants.mjs';
+import { merge } from '../src/unpack.mjs';
+import { INHERIT } from '../src/constants.mjs';
 
 export async function loadUnicodeRangeData(url) {
 	const r = await fetch(url);

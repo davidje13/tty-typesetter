@@ -1,4 +1,3 @@
-import { merge, unpack } from './unpack.mjs';
 import { data as cam16_0 } from '../data/cam-16.0.mjs';
 import { data as linux } from '../data/tty-linux--.mjs';
 import { data as xterm } from '../data/tty-xterm--.mjs';
@@ -13,6 +12,8 @@ import { data as vte8 } from '../data/tty-gnome-fedora.mjs';
 import { data as warp } from '../data/tty-warp-0.2025.06.mjs';
 import { data as intellij } from '../data/tty-jediterm-2023.3.8.mjs';
 import { data as eterm } from '../data/tty-eterm.mjs';
+
+import { merge, unpack } from './unpack.mjs';
 import { UNSUPPORTED } from './constants.mjs';
 
 const sources = [

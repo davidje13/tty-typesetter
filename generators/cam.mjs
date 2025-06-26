@@ -6,18 +6,18 @@
 // Note: unlike the original, this (typically) marks unassigned
 // characters as 1, instead of maintaining the previous width
 
-import { strings } from '../data/strings.mjs';
+import { codepointCount, UNSUPPORTED } from '../src/constants.mjs';
 import {
 	codepointsToString,
-	explodeSequenceKeys,
-} from './tools/read-strings.mjs';
-import { Compressor } from './tools/Compressor.mjs';
-import { readOrdered } from './tools/readers.mjs';
+	explodeGraphemeClusterKeys,
+} from '../src/read-grapheme-clusters.mjs';
+import { Compressor } from '../src/Compressor.mjs';
+import { readOrdered } from '../dev-utils/readers.mjs';
 import {
 	loadUnicodeRangeData,
 	loadUnicodeStringData,
-} from './tools/unicode-data.mjs';
-import { codepointCount, IGNORE, UNSUPPORTED } from '../src/constants.mjs';
+} from '../dev-utils/unicode-data.mjs';
+import { compressedSequences } from '../data/grapheme-clusters.mjs';
 
 const unicodeVersion = process.argv[2];
 if (!unicodeVersion) {
@@ -64,7 +64,7 @@ for (const [seq] of uEmojiZwjSequences) {
 }
 
 let i = codepointCount;
-for (const seq of explodeSequenceKeys(strings)) {
+for (const seq of explodeGraphemeClusterKeys(compressedSequences)) {
 	if (known.has(codepointsToString(seq))) {
 		compressor.add(i, 2);
 	} else {

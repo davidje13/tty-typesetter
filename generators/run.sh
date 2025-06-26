@@ -6,7 +6,7 @@ DATA_DIR="$GEN_DIR/../data"
 
 mkdir -p "$DATA_DIR";
 
-[ -f "$DATA_DIR/strings.mjs" ] || "$GEN_DIR/strings.mjs" "17.0.0" > "$DATA_DIR/strings.mjs";
+[ -f "$DATA_DIR/grapheme-clusters.mjs" ] || "$GEN_DIR/gen-grapheme-clusters.mjs" "17.0.0" > "$DATA_DIR/grapheme-clusters.mjs";
 
 #"$GEN_DIR/cam-kuhn.mjs" | "$GEN_DIR/tools/compress.mjs" > "$DATA_DIR/cam-kuhn.dat";
 #[ -f "$DATA_DIR/cam-05.0.dat" ] || "$GEN_DIR/cam.mjs" "5.0.0" > "$DATA_DIR/cam-05.0.dat";
@@ -23,7 +23,7 @@ done;
 LANG="$ORIGINAL_LANG";
 
 TTY_FILE="tty-$TERM-$TERM_PROGRAM-$TERM_PROGRAM_VERSION";
-[ -f "$DATA_DIR/$TTY_FILE.dat" ] || "$GEN_DIR/tty.mjs" > "$DATA_DIR/$TTY_FILE.dat";
+[ -f "$DATA_DIR/$TTY_FILE.dat" ] || "$GEN_DIR/../src/measure-tty.mjs" > "$DATA_DIR/$TTY_FILE.dat";
 
 "$GEN_DIR/tools/optimise.mjs";
 "$GEN_DIR/tools/analyse.mjs";

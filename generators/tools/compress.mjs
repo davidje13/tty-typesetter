@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node
 
-import { Compressor } from './Compressor.mjs';
+import { Compressor } from '../../src/Compressor.mjs';
 
 let char = 0;
 const compressor = new Compressor(out);

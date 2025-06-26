@@ -1,8 +1,8 @@
 #!/usr/bin/env -S node
 
-import { loadUnicodeStringData } from './tools/unicode-data.mjs';
-import { makeSequenceKey } from './tools/read-strings.mjs';
-import { KEY_PART } from '../src/sequence-key.mjs';
+import { KEY_PART } from '../src/cluster-key.mjs';
+import { makeGraphemeClusterKey } from '../src/read-grapheme-clusters.mjs';
+import { loadUnicodeStringData } from '../dev-utils/unicode-data.mjs';
 
 const unicodeVersion = process.argv[2];
 if (!unicodeVersion) {
@@ -22,7 +22,7 @@ const uEmojiZwjSequences = await loadUnicodeStringData(
 const allSequences = new Set();
 
 for (const [seq] of uEmojiSequences) {
-	const key = makeSequenceKey(seq);
+	const key = makeGraphemeClusterKey(seq);
 	// single-character sequences already captured as regular characters
 	if (seq.length > 1) {
 		allSequences.add(key);
@@ -30,7 +30,7 @@ for (const [seq] of uEmojiSequences) {
 }
 
 for (const [seq] of uEmojiZwjSequences) {
-	const key = makeSequenceKey(seq);
+	const key = makeGraphemeClusterKey(seq);
 	if (seq.length > 1) {
 		allSequences.add(key);
 	}
@@ -112,7 +112,7 @@ const combined = split
 	.sort();
 
 process.stdout.write(
-	`export const strings=${JSON.stringify(combined.join(' '))};\n`,
+	`export const compressedSequences=${JSON.stringify(combined.join(' '))};\n`,
 );
 
 function merge(a, b, joiner) {

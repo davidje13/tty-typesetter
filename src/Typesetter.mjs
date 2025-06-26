@@ -1,7 +1,7 @@
+import { compressedSequences } from '../data/grapheme-clusters.mjs';
 import { codepointCount } from './constants.mjs';
-import { strings } from '../data/strings.mjs';
 import { loadTable } from './data.mjs';
-import { splitKey } from './sequence-key.mjs';
+import { splitKey } from './cluster-key.mjs';
 
 export class Typesetter {
 	constructor(env = globalThis.process?.env ?? {}) {
@@ -87,7 +87,7 @@ export class Typesetter {
 			return w;
 		}
 
-		const relevantPatterns = STRING_PATTERN_CHARS.get(codepoint) ?? EMPTY;
+		const relevantPatterns = SEQUENCE_PATTERN_CHARS.get(codepoint) ?? EMPTY;
 		for (const index of state._patterns.keys()) {
 			if (!relevantPatterns.has(index)) {
 				state._patterns.delete(index);
@@ -95,7 +95,7 @@ export class Typesetter {
 		}
 		let bestMatch = null;
 		for (const index of relevantPatterns) {
-			const { _pattern, _rangeBegin } = STRING_PATTERNS[index];
+			const { _pattern, _rangeBegin } = SEQUENCE_PATTERNS[index];
 			let patternState = state._patterns.get(index);
 			if (!patternState) {
 				patternState = [];
@@ -340,21 +340,21 @@ export class Typesetter {
 	}
 }
 
-const STRING_PATTERN_CHARS = new Map();
+const SEQUENCE_PATTERN_CHARS = new Map();
 const EMPTY = new Set();
-const STRING_PATTERNS = strings
+const SEQUENCE_PATTERNS = compressedSequences
 	.split(' ')
 	.map(splitKey)
 	.map((pattern) => ({ _pattern: pattern, _rangeBegin: 0 }));
 
-for (let i = 0, p = codepointCount; i < STRING_PATTERNS.length; ++i) {
-	STRING_PATTERNS[i]._rangeBegin = p;
+for (let i = 0, p = codepointCount; i < SEQUENCE_PATTERNS.length; ++i) {
+	SEQUENCE_PATTERNS[i]._rangeBegin = p;
 	let count = 1;
-	for (const part of STRING_PATTERNS[i]._pattern) {
+	for (const part of SEQUENCE_PATTERNS[i]._pattern) {
 		for (const codepoint of part.codepoints) {
-			const list = STRING_PATTERN_CHARS.get(codepoint) ?? new Set();
+			const list = SEQUENCE_PATTERN_CHARS.get(codepoint) ?? new Set();
 			list.add(i);
-			STRING_PATTERN_CHARS.set(codepoint, list);
+			SEQUENCE_PATTERN_CHARS.set(codepoint, list);
 		}
 		count *= part.codepoints.length + (part.optional ? 1 : 0);
 	}

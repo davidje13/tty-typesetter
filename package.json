@@ -9,6 +9,7 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"test": "lean-test src generators",
+		"clean-rebuildable": "rm data/*.mjs; rm data/cam-*",
 		"build": "rm -rf build || true; rollup --config rollup.config.mjs && chmod +x build/bin.mjs && cp README.md LICENSE src/index.d.ts build && grep -v private < package.json > build/package.json && cd build && npm pack && cd - && mv build/*.tgz package.tgz",
 		"dopublish": "npm run build --silent && npm publish package.tgz"
 	},
