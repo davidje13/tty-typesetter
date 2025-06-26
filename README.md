@@ -28,42 +28,31 @@ while keeping track of the cursor location.
 
 ## Usage
 
+```sh
+npm install --save tty-typesetter
+```
+
+### Typesetting
+
 ```js
 import { Typesetter } from 'tty-typesetter';
 
-// can pass in an optional custom environment object (defaults to process.env)
+// accepts an optional custom environment object (defaults to process.env)
 const ts = new Typesetter();
 
-const message = 'A hut (\uD83D\uDED6)\n';
+const message = `This message will be measured and hard-wrapped to fit the terminal if necessary.
 
-process.stdout.write('\n');
+It can include \x1b[32mANSI escape codes such as colour changes\x1b[0m.
+`;
 
-process.stdout.write('Without tty-typesetter:\n');
-process.stdout.write(message);
-process.stdout.write('\n');
-
-process.stdout.write('With tty-typesetter:\n');
 for (const line of ts.typeset(message)) {
   process.stdout.write(line);
 }
-process.stdout.write('\n');
 ```
 
-In VSCode 1.100 (which does not support Unicode 16), this prints:
-
-![Screenshot of VSCode 1.100 showing overlapping characters without tty-typesetter](./docs/screenshots/vscode100.png)
-
-Whereas in Apple's Terminal.app (which does support Unicode 16), it prints:
-
-![Screenshot of Apple Terminal showing the same output with and without tty-typesetter](./docs/screenshots/apple.png)
-
-## Raw character widths
+### Measuring
 
 ```js
-import { Typesetter } from 'tty-typesetter';
-
-const ts = new Typesetter();
-
 w = ts.measureCodepoint(0x1f6d6); //              2 (or 1 in VSCode 1.100)
 w = ts.measureCharacter('\uD83D\uDED6'); //       2 (or 1 in VSCode 1.100)
 w = ts.measureString('A hut (\uD83D\uDED6)'); // 10 (or 9 in VSCode 1.100)
@@ -86,10 +75,10 @@ groups). These cannot be measured by simply summing individual codepoints, so a
 
 ```js
 const state = ts.makeState({ skipAnsi: true });
-w = ts.measureCodepointStateful(0x1f468, state); //  2 (man)
-w = ts.measureCodepointStateful(0x200d, state); //   0 (+)
-w = ts.measureCodepointStateful(0x1f469, state); //  2 (woman)
-w = ts.measureCodepointStateful(0x200d, state); //   0 (+)
+w = ts.measureCodepointStateful(0x1f468, state); // 2 (man)
+w = ts.measureCodepointStateful(0x200d, state); //  0 (+)
+w = ts.measureCodepointStateful(0x1f469, state); // 2 (woman)
+w = ts.measureCodepointStateful(0x200d, state); //  0 (+)
 w = ts.measureCodepointStateful(0x1f467, state); // -2 (girl)
 ```
 
@@ -111,7 +100,8 @@ rendering them as a single glyph).
 
 Note that this is far from a full implementation of the
 [Unicode line breaking algorithm](https://www.unicode.org/reports/tr14/) and
-will produce poor results for many scripts.
+will produce poor results for many scripts (even the full algorithm is noted to
+have issues for scripts where word boundaries are implicit).
 
 Each returned line will end in `\r`, `\n`, or (for the last line) may not have a
 newline terminator. You can use these to keep track of the line number if you
@@ -241,6 +231,14 @@ especially out-of-date as it was made for Unicode 5.0, meaning they omit the
 vast majority of emoji and many ideographic characters which have been added
 since then (as well as erroneously returning a width of 2 for some characters
 which did not exist at the time but were later added with a width of 1).
+
+As an example: in VSCode 1.100 (which does not support Unicode 16) the "hut"
+emoji has an advance width of 1 cell, despite being too wide (and overflowing
+into the following cell), whereas in Apple's Terminal.app (which does support
+Unicode 16) on the same computer, the same emoji has an advance width of 2
+cells. `tty-typesetter` normalises these behaviours:
+
+![Screenshot of Apple Terminal rendering both emojis correctly, and VSCode 1.100 showing overlapping characters for the 'hut' emoji without tty-typesetter](./docs/screenshots/terminals.png)
 
 ## Measuring a new terminal
 
