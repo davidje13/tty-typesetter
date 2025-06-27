@@ -20,8 +20,10 @@ const uEmojiZwjSequences = await loadUnicodeStringData(
 );
 
 const allSequences = new Set();
+let maxLength = 0;
 
 for (const [seq] of uEmojiSequences) {
+	maxLength = Math.max(maxLength, seq.length);
 	const key = makeGraphemeClusterKey(seq);
 	// single-character sequences already captured as regular characters
 	if (seq.length > 1) {
@@ -30,6 +32,7 @@ for (const [seq] of uEmojiSequences) {
 }
 
 for (const [seq] of uEmojiZwjSequences) {
+	maxLength = Math.max(maxLength, seq.length);
 	const key = makeGraphemeClusterKey(seq);
 	if (seq.length > 1) {
 		allSequences.add(key);
@@ -114,6 +117,8 @@ const combined = split
 process.stdout.write(
 	`export const compressedSequences=${JSON.stringify(combined.join(' '))};\n`,
 );
+
+process.stderr.write(`Longest grapheme cluster: ${maxLength} codepoints\n`);
 
 function merge(a, b, joiner) {
 	return [...new Set([...a.split(joiner), ...b.split(joiner)])]

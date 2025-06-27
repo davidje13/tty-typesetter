@@ -32,61 +32,14 @@ export class Typesetter {
 			_isAnsi: 0,
 			_isEsc: false,
 			_patterns: new Map(),
-			_pos: 0,
+			uncertainCodepoints: 0,
 		};
 	}
 
-	measureCodepointStateful(codepoint, state) {
-		if (codepoint === 0x1b && state._skipAnsi) {
-			state._isEsc = true;
-			return 0;
-		}
-		if (state._isEsc) {
-			state._isEsc = false;
-			if (codepoint >= 0x40 && codepoint <= 0x5f) {
-				const c1equiv = codepoint + 0x40;
-				if (state._isAnsi) {
-					if (c1equiv === 0x9c) {
-						state._isAnsi = 0;
-					}
-				} else if (c1equiv !== 0x9c) {
-					// TODO: various termination requirements for different codes
-					state._isAnsi = c1equiv;
-				}
-				return 0;
-			}
-		}
-		// https://en.wikipedia.org/wiki/ANSI_escape_code
-		switch (state._isAnsi) {
-			case 0:
-				break;
-			case 0x9b: // Control Sequence
-				if (codepoint < 0x20 || codepoint > 0x7e) {
-					// invalid character for ANSI escape
-					state._isAnsi = 0;
-					break;
-				} else if (codepoint >= 0x40 && codepoint <= 0x7e) {
-					// terminating character
-					state._isAnsi = 0;
-					return 0;
-				} else {
-					return 0;
-				}
-			case 0x9d:
-				if (codepoint === 0x09) {
-					// bel (terminating character)
-					state._isAnsi = 0;
-				}
-				return 0;
-			default:
-				return 0;
-		}
-
-		const w = this.measureCodepoint(codepoint);
+	_getGraphemeCluster(codepoint, state, codepointW) {
 		if (this._supportsGraphemeClusters !== 2) {
-			return w;
+			return null;
 		}
-
 		const relevantPatterns = SEQUENCE_PATTERN_CHARS.get(codepoint) ?? EMPTY;
 		for (const index of state._patterns.keys()) {
 			if (!relevantPatterns.has(index)) {
@@ -94,6 +47,7 @@ export class Typesetter {
 			}
 		}
 		let bestMatch = null;
+		let longestPattern = 0;
 		for (const index of relevantPatterns) {
 			const { _pattern, _rangeBegin } = SEQUENCE_PATTERNS[index];
 			let patternState = state._patterns.get(index);
@@ -101,57 +55,91 @@ export class Typesetter {
 				patternState = [];
 				state._patterns.set(index, patternState);
 			}
-			let prev = { n: 0, s: state._pos };
-			let result = null;
-			let resultM = 1;
+			let prev = { _patternIndex: 0, _sequenceCols: 0, _codepoints: 0 };
 			for (let j = 0; j < _pattern.length; ++j) {
 				const part = _pattern[j];
 				const size = part.codepoints.length + (part.optional ? 1 : 0);
 				let next = patternState[j];
-				if (!next && part.optional && prev) {
-					next = { n: prev.n * size, s: prev.s };
-				}
-				if (part.optional) {
-					resultM *= size;
-				} else {
-					result = null;
-				}
 				patternState[j] = null;
 				if (prev) {
 					const m = part.codepoints.indexOf(codepoint);
 					if (m !== -1) {
-						patternState[j] = result = {
-							n: prev.n * size + m + (part.optional ? 1 : 0),
-							s: prev.s,
+						const codepoints = prev._codepoints + 1;
+						patternState[j] = {
+							_patternIndex:
+								prev._patternIndex * size + m + (part.optional ? 1 : 0),
+							_sequenceCols: prev._sequenceCols + codepointW,
+							_codepoints: codepoints,
 						};
-						resultM = 1;
+						if (codepoints > longestPattern) {
+							longestPattern = codepoints;
+						}
+					}
+					if (part.optional && !next) {
+						next = { ...prev, _patternIndex: prev._patternIndex * size };
 					}
 				}
 				prev = next;
 			}
+			const result = patternState[patternState.length - 1] ?? prev;
+			patternState[patternState.length - 1] = null;
 			if (result) {
-				const ww = this.measureCodepoint(_rangeBegin + result.n * resultM);
-				if (ww !== null) {
-					const posSeq = result.s + ww + 0x100;
-					let wdiff = (posSeq - state._pos) & 0xff;
-					if (wdiff >= 0x80) {
-						wdiff -= 0x100;
-					}
-					if (bestMatch === null || wdiff < bestMatch.wdiff) {
-						bestMatch = { wdiff, posSeq };
-					}
+				const joinedW = this.measureCodepoint(
+					_rangeBegin + result._patternIndex,
+				);
+				if (
+					joinedW !== null &&
+					(!bestMatch || result._codepoints > bestMatch._codepoints)
+				) {
+					bestMatch = {
+						_wdiff: joinedW - result._sequenceCols,
+						_codepoints: result._codepoints,
+					};
 				}
 			}
 		}
 
-		if (bestMatch) {
-			state._pos = bestMatch.posSeq & 0xff;
-			return bestMatch.wdiff;
-		} else {
-			if (w > 0) {
-				state._pos = (state._pos + w) & 0xff;
+		if (!bestMatch) {
+			state.uncertainCodepoints = longestPattern;
+			return null;
+		}
+
+		// update other in-progress patterns to account for the
+		// change in width from this potentially partial match
+		longestPattern = 0;
+		for (const index of relevantPatterns) {
+			const patternState = state._patterns.get(index);
+			if (patternState) {
+				for (let j = 0; j < patternState.length; ++j) {
+					const ps = patternState[j];
+					if (ps && ps._codepoints >= bestMatch._codepoints) {
+						ps._sequenceCols += bestMatch._wdiff;
+						if (ps._codepoints > longestPattern) {
+							longestPattern = ps._codepoints;
+						}
+					} else {
+						patternState[j] = null;
+					}
+				}
 			}
-			return w;
+		}
+		state.uncertainCodepoints = longestPattern;
+		return bestMatch;
+	}
+
+	measureCodepointStateful(codepoint, state) {
+		if (state._skipAnsi && isAnsiEscape(codepoint, state)) {
+			state.uncertainCodepoints = 0;
+			return 0;
+		}
+
+		const codepointW = this.measureCodepoint(codepoint);
+
+		const cluster = this._getGraphemeCluster(codepoint, state, codepointW);
+		if (cluster) {
+			return codepointW + cluster._wdiff;
+		} else {
+			return codepointW;
 		}
 	}
 
@@ -337,6 +325,51 @@ export class Typesetter {
 		if (currentLine.length > 0) {
 			yield currentLine.join('');
 		}
+	}
+}
+
+function isAnsiEscape(codepoint, state) {
+	if (codepoint === 0x1b) {
+		state._isEsc = true;
+		return true;
+	}
+	if (state._isEsc) {
+		state._isEsc = false;
+		if (codepoint >= 0x40 && codepoint <= 0x5f) {
+			const c1equiv = codepoint + 0x40;
+			if (state._isAnsi) {
+				if (c1equiv === 0x9c) {
+					state._isAnsi = 0;
+				}
+			} else if (c1equiv !== 0x9c) {
+				// TODO: various termination requirements for different codes
+				state._isAnsi = c1equiv;
+			}
+			return true;
+		}
+	}
+	// https://en.wikipedia.org/wiki/ANSI_escape_code
+	switch (state._isAnsi) {
+		case 0:
+			return false;
+		case 0x9b: // Control Sequence
+			if (codepoint < 0x20 || codepoint > 0x7e) {
+				// invalid character for ANSI escape
+				state._isAnsi = 0;
+				return false;
+			} else if (codepoint >= 0x40 && codepoint <= 0x7e) {
+				// terminating character
+				state._isAnsi = 0;
+			}
+			return true;
+		case 0x9d:
+			if (codepoint === 0x09) {
+				// bel (terminating character)
+				state._isAnsi = 0;
+			}
+			return true;
+		default:
+			return true;
 	}
 }
 

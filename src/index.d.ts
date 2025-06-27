@@ -1,5 +1,5 @@
 declare module 'tty-typesetter' {
-	type State = unique symbol & {};
+	type State = unique symbol & { uncertainCodepoints: number };
 
 	interface StateOptions {
 		/** skip ANSI escape sequences: return a width of 0 for contained characters (defaults to `true`) */

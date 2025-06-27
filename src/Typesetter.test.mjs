@@ -125,6 +125,28 @@ describe('Typesetter', () => {
 			expect(fn(0x200d), equals(2)); // +
 			expect(fn(0x1f466), equals(2)); // boy (second recognised pattern overrides first)
 		});
+
+		it('handles grapheme clusters which overlap', () => {
+			const fn = new Typesetter({}).measureStringProgressive();
+			expect(fn(0x1f468), equals(2)); // man
+			expect(fn(0x200d), equals(2)); // +
+			expect(fn(0x1f468), equals(4)); // man
+			expect(fn(0x200d), equals(4)); // +
+			expect(fn(0x1f469), equals(6)); // woman
+			expect(fn(0x200d), equals(6)); // +
+			expect(fn(0x1f467), equals(4)); // girl (recognised pattern)
+			// 3-adult family is not a valid sequence, so this finds man+ & man+woman+girl
+		});
+
+		it('handles sequential grapheme clusters', () => {
+			const fn = new Typesetter({}).measureStringProgressive();
+			expect(fn(0x1f468), equals(2)); // man
+			expect(fn(0x200d), equals(2)); // +
+			expect(fn(0x1f467), equals(2)); // girl (recognised pattern)
+			expect(fn(0x1f469), equals(4)); // woman
+			expect(fn(0x200d), equals(4)); // +
+			expect(fn(0x1f467), equals(4)); // girl (recognised pattern)
+		});
 	});
 
 	describe('typeset', () => {

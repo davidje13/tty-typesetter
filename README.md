@@ -86,6 +86,15 @@ The final character in this example completes a grapheme cluster, causing the
 "man" and "woman" emojis to collapse into a single glyph. This means the width
 is _reduced_ by adding the extra character, hence the negative value returned.
 
+The `state` is an opaque object holding internal values which should not be
+accessed or modified (and may change in future releases). However it has one
+property which can be accessed: `uncertainCodepoints` is a count of the number
+of codepoints which have been processed which might still be part of a grapheme
+cluster, depending on the following characters. This is primarily intended for
+line wrapping algorithms so that they can wait for confirmed character widths
+before committing to line break positions. It will never be larger than the
+longest defined Unicode grapheme cluster (currently 10 codepoints).
+
 On terminals which do not support grapheme clusters, `tty-typesetter` will only
 return non-negative numbers even when using `measureCodepointStateful`.
 
