@@ -32,12 +32,14 @@ export class Typesetter {
 			_isAnsi: 0,
 			_isEsc: false,
 			_patterns: new Map(),
+			_checkClusters: this._supportsGraphemeClusters === 2,
+			_renderedW: 0,
 			uncertainCodepoints: 0,
 		};
 	}
 
 	_getGraphemeCluster(codepoint, state, codepointW) {
-		if (this._supportsGraphemeClusters !== 2) {
+		if (!state._checkClusters) {
 			return null;
 		}
 		const relevantPatterns = SEQUENCE_PATTERN_CHARS.get(codepoint) ?? EMPTY;
@@ -92,6 +94,7 @@ export class Typesetter {
 					(!bestMatch || result._codepoints > bestMatch._codepoints)
 				) {
 					bestMatch = {
+						_w: joinedW,
 						_wdiff: joinedW - result._sequenceCols,
 						_codepoints: result._codepoints,
 					};
@@ -129,6 +132,7 @@ export class Typesetter {
 
 	measureCodepointStateful(codepoint, state) {
 		if (state._skipAnsi && isAnsiEscape(codepoint, state)) {
+			state._renderedW = 0;
 			state.uncertainCodepoints = 0;
 			return 0;
 		}
@@ -137,8 +141,10 @@ export class Typesetter {
 
 		const cluster = this._getGraphemeCluster(codepoint, state, codepointW);
 		if (cluster) {
+			state._renderedW = cluster._w;
 			return codepointW + cluster._wdiff;
 		} else {
+			state._renderedW = codepointW;
 			return codepointW;
 		}
 	}
@@ -180,148 +186,195 @@ export class Typesetter {
 			padUnsupportedCharacters = true,
 			softHyphens = true,
 			niceWrap = true,
+			atomicGraphemeClusters = true,
 			tabSize = 8,
 			beginColumn = 0,
 			wrapColumn = beginColumn,
 			...options
 		} = {},
 	) {
-		let targetW = null;
-		if (padUnsupportedCharacters) {
-			targetW = loadTable({})._read;
+		// substitute minimum workable values if input is unworkable
+		if (beginColumn >= columnLimit && wrapColumn >= columnLimit) {
+			beginColumn = 0;
+			wrapColumn = 0;
+			columnLimit = 1;
+		} else if (wrapColumn >= columnLimit) {
+			wrapColumn = columnLimit - 1;
 		}
+
+		const targetW = padUnsupportedCharacters ? loadTable({})._read : null;
 		const state = this.makeState(options);
+		state._checkClusters ||= atomicGraphemeClusters === true;
+		const currentSegment = {
+			_joinType: 2, // 1 = continuous, 2 = whitespace, 3 = soft hyphen
+			_parts: [],
+			_size: 0,
+			_breakI: -1,
+			_breakS: 0,
+		};
+		const currentLine = [];
+		let swallowLeadingSpace = false;
+		let emergencyWrap = false;
 		let column = beginColumn;
-		let currentLine = [];
-		let wrap = WRAP_NONE;
-		let swallowSpace = false;
-		let lastJoiner = false;
+
+		function completeLine(trailer) {
+			if (!currentLine.length) {
+				return trailer;
+			}
+			const ln =
+				(currentLine.length === 1 ? currentLine[0] : currentLine.join('')) +
+				trailer;
+			currentLine.length = 0;
+			return ln;
+		}
+
+		function* completeSegment(newJoinType) {
+			if (column + currentSegment._size > columnLimit) {
+				if (currentSegment._joinType === 2) {
+					swallowLeadingSpace = true;
+				} else if (currentSegment._joinType === 3) {
+					currentLine.push('-');
+				}
+				yield completeLine('\n');
+				column = wrapColumn;
+			}
+			if (currentSegment._parts.length > 0) {
+				currentLine.push(
+					currentSegment._parts.length === 1
+						? currentSegment._parts[0]
+						: currentSegment._parts.join(''),
+				);
+				column += currentSegment._size;
+				currentSegment._parts.length = 0;
+				currentSegment._size = 0;
+				currentSegment._breakI = -1;
+			}
+			currentSegment._joinType = newJoinType;
+		}
+
 		for (let i = 0; i < string.length; ++i) {
 			const codepoint = string.codePointAt(i);
 			if (codepoint >= 0x010000) {
 				++i; // skip past surrogate pair
 			}
-			if (swallowSpace) {
+
+			const prevW = state._renderedW;
+			let c = String.fromCodePoint(codepoint);
+			let cw = this.measureCodepointStateful(codepoint, state);
+			if (padUnsupportedCharacters && cw === 1 && targetW(codepoint) === 2) {
+				c += ' ';
+				cw += this.measureCodepointStateful(0x20, state); // reset grapheme clusters if necessary
+			}
+			if (swallowLeadingSpace) {
 				if (isSpace(codepoint)) {
 					continue;
-				} else {
-					swallowSpace = false;
 				}
+				swallowLeadingSpace = false;
 			}
-			let cw = this.measureCodepointStateful(codepoint, state);
-			if (
-				codepoint === 0x00ad &&
-				softHyphens &&
-				!state._isAnsi &&
-				!state._isEsc
-			) {
-				cw = 1; // force display if we are using soft hyphens - we will display a regular hyphen
-			}
-			if (cw > 0) {
-				let c = String.fromCodePoint(codepoint);
-				if (padUnsupportedCharacters && cw === 1 && targetW(codepoint) === 2) {
-					cw = 2;
-					c += ' ';
-				}
-				if (column > 0 && column + cw > columnLimit) {
-					if (isSpace(codepoint)) {
-						wrap = {
-							_pos: currentLine.length,
-							_col: column,
-							_softHyphen: false,
-						};
-					}
-					if (niceWrap && wrap._pos > 0) {
-						const ln = currentLine.splice(0, wrap._pos);
-						if (wrap._softHyphen) {
-							ln.push('-');
-						}
-						ln.push('\n');
-						yield ln.join('');
-						column += wrapColumn - wrap._col;
-						wrap = WRAP_NONE;
-						while (currentLine[0]?.startsWith(' ')) {
-							currentLine.shift();
-						}
+			if (cw === null) {
+				if (codepoint === 0x0009 && tabSize > 0) {
+					yield* completeSegment(2);
+					const next = (Math.floor(column / tabSize) + 1) * tabSize;
+					if (niceWrap) {
+						cw = Math.min(next, columnLimit) - column;
 					} else {
-						currentLine.push('\n');
-						yield currentLine.join('');
-						currentLine.length = 0;
-						column = wrapColumn;
-						wrap = WRAP_NONE;
-					}
-					if (niceWrap) {
-						if (!currentLine.length) {
-							swallowSpace = true;
-							if (isSpace(codepoint)) {
-								lastJoiner = false;
-								continue;
-							}
+						if (next > columnLimit) {
+							cw = tabSize;
+						} else {
+							cw = next - column;
 						}
 					}
-				}
-				if (codepoint === 0x0020) {
-					column += cw;
-					currentLine.push(' ');
-					wrap = { _pos: currentLine.length, _col: column, _softHyphen: false };
-				} else if (codepoint === 0x00ad && softHyphens) {
-					wrap = { _pos: currentLine.length, _col: column, _softHyphen: true };
-				} else {
-					column += cw;
-					currentLine.push(c);
-					if (cw === 2 && !lastJoiner) {
-						wrap = {
-							_pos: currentLine.length,
-							_col: column,
-							_softHyphen: false,
-						};
-					}
-				}
-			} else if (cw < 0) {
-				if (column < -cw) {
-					// only possible if we added a line wrap inside an emoji sequence,
-					// but that should not happen unless the terminal is very narrow
-					// (prefers wrapping before emoji sequence)
-					column = 0;
-				} else {
-					column += cw;
-				}
-			} else if (cw === 0) {
-				currentLine.push(String.fromCodePoint(codepoint));
-			} else if (codepoint === 0x0009 && tabSize >= 0) {
-				const next = (Math.floor(column / tabSize) + 1) * tabSize;
-				if (next >= columnLimit) {
-					currentLine.push('\n');
-					yield currentLine.join('');
-					currentLine.length = 0;
+					c = ' '.repeat(cw);
+				} else if (codepoint === 0x000a) {
+					yield* completeSegment(0);
+					yield completeLine('\n');
 					column = wrapColumn;
-					wrap = WRAP_NONE;
-					if (niceWrap) {
-						swallowSpace = true;
-					}
+					continue;
+				} else if (codepoint === 0x000d) {
+					yield* completeSegment(0);
+					yield completeLine('\r');
+					column = wrapColumn;
+					continue;
 				} else {
-					currentLine.push(' '.repeat(next - column));
-					column = next;
-					wrap = { _pos: currentLine.length, _col: column, _softHyphen: false };
+					cw = 0;
 				}
-			} else if (codepoint === 0x000a) {
-				currentLine.push('\n');
-				yield currentLine.join('');
-				currentLine.length = 0;
-				column = wrapColumn;
-				wrap = WRAP_NONE;
-			} else if (codepoint === 0x000d) {
-				currentLine.push('\r');
-				yield currentLine.join('');
-				currentLine.length = 0;
-				column = wrapColumn;
-				wrap = WRAP_NONE;
-			} else {
-				currentLine.push(String.fromCodePoint(codepoint));
 			}
-
-			lastJoiner = codepoint === 0x200d;
+			const isHidden = state._isAnsi || state._isEsc;
+			if (
+				(state.uncertainCodepoints <= 1 || !atomicGraphemeClusters) &&
+				!isHidden
+			) {
+				if (!niceWrap) {
+					yield* completeSegment(1);
+				} else if (isSpace(codepoint)) {
+					emergencyWrap = false;
+					yield* completeSegment(2);
+					if (column + cw <= columnLimit) {
+						currentSegment._parts.push(c);
+						currentSegment._size += cw;
+						yield* completeSegment(2);
+					} else {
+						yield completeLine('\n');
+						column = wrapColumn;
+						swallowLeadingSpace = true;
+					}
+					continue;
+				} else if (codepoint === 0x00ad && softHyphens) {
+					emergencyWrap = false;
+					yield* completeSegment(3);
+					continue;
+				} else if (prevW === 2) {
+					emergencyWrap = false;
+					yield* completeSegment(1);
+				}
+			}
+			if (emergencyWrap) {
+				if (column + cw > columnLimit) {
+					yield completeLine('\n');
+					column = wrapColumn;
+				}
+				currentLine.push(c);
+				column += cw;
+				continue;
+			}
+			if (niceWrap) {
+				if (
+					currentSegment._breakI === -1 &&
+					column + currentSegment._size + cw > columnLimit
+				) {
+					// record this location in case we need to apply character-based wrapping
+					currentSegment._breakI = currentSegment._parts.length;
+					currentSegment._breakS = currentSegment._size;
+				}
+				if (
+					Math.min(column, wrapColumn) + currentSegment._size + cw >
+					columnLimit
+				) {
+					// emergency character-based wrapping: this segment
+					// will no longer fit no matter how we wrap it
+					currentLine.push(
+						currentSegment._parts.splice(0, currentSegment._breakI).join(''),
+					);
+					yield completeLine('\n');
+					currentLine.push(currentSegment._parts.join(''));
+					column = wrapColumn + currentSegment._size - currentSegment._breakS;
+					if (column >= columnLimit) {
+						yield completeLine('\n');
+						column = wrapColumn;
+					}
+					currentLine.push(c);
+					column += cw;
+					currentSegment._parts.length = 0;
+					currentSegment._size = 0;
+					currentSegment._breakI = -1;
+					emergencyWrap = true;
+					continue;
+				}
+			}
+			currentSegment._parts.push(c);
+			currentSegment._size += cw;
 		}
+		yield* completeSegment(0);
 		if (currentLine.length > 0) {
 			yield currentLine.join('');
 		}
@@ -393,8 +446,6 @@ for (let i = 0, p = codepointCount; i < SEQUENCE_PATTERNS.length; ++i) {
 	}
 	p += count;
 }
-
-const WRAP_NONE = { _pos: 0, _col: 0, _softHyphen: false };
 
 function isSpace(codepoint) {
 	return codepoint === 0x0009 || codepoint === 0x0020;

@@ -191,7 +191,7 @@ describe('Typesetter', () => {
 					{
 						name: 'wraps inside words when the console is too narrow',
 						input: 'Super\xadcali\xadfragilistic\xadexpiali\xaddocious',
-						sizes: [[8, 'Super-\ncali-\nfragilis\ntic-\nexpiali-\ndocious']],
+						sizes: [[8, 'Super-\ncalifrag\nilistic-\nexpiali-\ndocious']],
 					},
 					{
 						name: 'preserves soft hyphens and does not use them for wrapping if softHyphens is false',
@@ -204,13 +204,15 @@ describe('Typesetter', () => {
 					{
 						name: 'wraps at tabs',
 						input: 'a\t\t\t\t  \tb',
-						sizes: [[10, 'a       \nb']],
+						sizes: [[10, 'a         \nb']],
 					},
 					{
 						name: 'includes wrapped tabs if niceWrap is false',
 						input: 'a\t\t\t\t  \tb',
 						options: { niceWrap: false },
-						sizes: [[10, 'a       \n        \n        b']],
+						sizes: [
+							[10, 'a       \n        \n        \n          \n        b'],
+						],
 					},
 					{
 						name: 'wraps after wide characters',
@@ -221,27 +223,58 @@ describe('Typesetter', () => {
 							[4, '这是\n一条\n测试\n消息'],
 						],
 					},
-					//{ // TODO
-					//	name: 'avoids wrapping inside zwj grapheme clusters (with support)',
-					//	environment: KITTY,
-					//	input: 'cluster 👨‍👩‍👧‍👦',
-					//	sizes: [
-					//		[11, 'cluster 👨‍👩‍👧‍👦'],
-					//		[10, 'cluster 👨‍👩‍👧‍👦'],
-					//		[9, 'cluster \n👨‍👩‍👧‍👦'],
-					//	],
-					//},
-					//{ // TODO
-					//	name: 'avoids wrapping inside zwj grapheme clusters (without support)',
-					//	environment: VSCODE100,
-					//	input: 'cluster 👨‍👩‍👧‍👦',
-					//	sizes: [
-					//		[16, 'cluster 👨‍👩‍👧‍👦'],
-					//		[11, 'cluster \n👨‍👩‍👧‍👦'],
-					//		[10, 'cluster \n👨‍👩‍👧‍👦'],
-					//		[9, 'cluster \n👨‍👩‍👧‍👦'],
-					//	],
-					//},
+					{
+						name: 'avoids wrapping inside zwj grapheme clusters (with support)',
+						environment: KITTY,
+						input: 'cluster 👨‍👩‍👧‍👦',
+						sizes: [
+							[11, 'cluster 👨‍👩‍👧‍👦'],
+							[10, 'cluster 👨‍👩‍👧‍👦'],
+							[9, 'cluster \n👨‍👩‍👧‍👦'],
+						],
+					},
+					{
+						name: 'avoids wrapping inside zwj grapheme clusters (without support)',
+						environment: VSCODE100,
+						input: 'cluster 👨‍👩‍👧‍👦',
+						sizes: [
+							[16, 'cluster 👨‍👩‍👧‍👦'],
+							[11, 'cluster \n👨‍👩‍👧‍👦'],
+							[10, 'cluster \n👨‍👩‍👧‍👦'],
+							[9, 'cluster \n👨‍👩‍👧‍👦'],
+						],
+					},
+					{
+						name: 'allows wrapping between zwj grapheme clusters',
+						environment: KITTY,
+						input: 'clusters 👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦',
+						sizes: [
+							[13, 'clusters 👨‍👩‍👧‍👦👨‍👩‍👧‍👦\n👨‍👩‍👧‍👦'],
+							[12, 'clusters 👨‍👩‍👧‍👦\n👨‍👩‍👧‍👦👨‍👩‍👧‍👦'],
+							[11, 'clusters 👨‍👩‍👧‍👦\n👨‍👩‍👧‍👦👨‍👩‍👧‍👦'],
+						],
+					},
+					{
+						name: 'allows wrapping inside zwj grapheme clusters if atomicGraphemeClusters is false',
+						environment: VSCODE100,
+						input: 'cluster 👨‍👩‍👧‍👦',
+						options: { atomicGraphemeClusters: false },
+						sizes: [[11, 'cluster 👨\n‍👩‍👧‍👦']],
+					},
+					{
+						name: 'avoids wrapping inside zwj grapheme clusters if atomicGraphemeClusters is if-supported and the terminal supports grapheme clusters',
+						environment: KITTY,
+						input: 'cluster 👨‍👩‍👧‍👦',
+						options: { atomicGraphemeClusters: 'if-supported' },
+						sizes: [[11, 'cluster 👨‍👩‍👧‍👦']],
+					},
+					{
+						name: 'allows wrapping inside zwj grapheme clusters if atomicGraphemeClusters is if-supported and the terminal does not support grapheme clusters',
+						environment: VSCODE100,
+						input: 'cluster 👨‍👩‍👧‍👦',
+						options: { atomicGraphemeClusters: 'if-supported' },
+						sizes: [[11, 'cluster 👨\n‍👩‍👧‍👦']],
+					},
 					{
 						name: 'avoids wrapping inside modifier grapheme clusters (with support)',
 						environment: KITTY,
@@ -252,17 +285,17 @@ describe('Typesetter', () => {
 							[11, 'skin tone \n🧓🏽'],
 						],
 					},
-					//{ // TODO
-					//	name: 'avoids wrapping inside modifier grapheme clusters (without support)',
-					//	environment: VSCODE100,
-					//	input: 'skin tone 🧓🏽',
-					//	sizes: [
-					//		[14, 'skin tone 🧓🏽'],
-					//		[13, 'skin tone \n🧓🏽'],
-					//		[12, 'skin tone \n🧓🏽'],
-					//		[11, 'skin tone \n🧓🏽'],
-					//	],
-					//},
+					{
+						name: 'avoids wrapping inside modifier grapheme clusters (without support)',
+						environment: VSCODE100,
+						input: 'skin tone 🧓🏽',
+						sizes: [
+							[14, 'skin tone 🧓🏽'],
+							[13, 'skin tone \n🧓🏽'],
+							[12, 'skin tone \n🧓🏽'],
+							[11, 'skin tone \n🧓🏽'],
+						],
+					},
 					{
 						name: 'avoids wrapping inside flag grapheme clusters (with support)',
 						environment: KITTY,
@@ -300,7 +333,10 @@ describe('Typesetter', () => {
 					{
 						name: 'outputs one character per line if the column limit is too small',
 						input: 'foo bar',
-						sizes: [[0, 'f\no\no\nb\na\nr']],
+						sizes: [
+							[1, 'f\no\no\nb\na\nr'],
+							[0, 'f\no\no\nb\na\nr'],
+						],
 					},
 					{
 						name: 'uses basic line wrapping if niceWrap is false',
@@ -337,19 +373,21 @@ describe('Typesetter', () => {
 							[20, '\nthis is my very long\nmessage which needs \nto wrap.'],
 						],
 					},
-					//{ // TODO
-					//	name: 'wraps the first word if there is insufficient space on the first line',
-					//	input: 'this is my very long message which needs to wrap.',
-					//	options: { beginColumn: 18, wrapColumn: 0 },
-					//	sizes: [
-					//		[20, '\nthis is my very long\nmessage which needs \nto wrap.'],
-					//	],
-					//},
+					{
+						name: 'wraps the first word if there is insufficient space on the first line',
+						input: 'this is my very long message which needs to wrap.',
+						options: { beginColumn: 18, wrapColumn: 0 },
+						sizes: [
+							[20, '\nthis is my very long\nmessage which needs \nto wrap.'],
+						],
+					},
 					{
 						name: 'splits the first word if there is insufficient space for it even when wrapping',
-						input: 'verylongword',
+						input: 'verylongword not so long words',
 						options: { beginColumn: 4, wrapColumn: 0 },
-						sizes: [[6, 've\nrylong\nword']],
+						sizes: [[6, 've\nrylong\nword \nnot so\nlong \nwords']],
+						sizes: [[5, 'v\nerylo\nngwor\nd not\nso \nlong \nwords']],
+						sizes: [[4, '\nvery\nlong\nword\nnot \nso \nlong\nword\ns']],
 					},
 				],
 			},
@@ -393,7 +431,7 @@ describe('Typesetter', () => {
 				});
 				expect(
 					[...actual],
-					equals(['a       b\n', 'c    d\n', 'e\n', 'f    g']),
+					equals(['a       b      \n', 'c    d      \n', 'e\n', 'f    g']),
 				);
 			});
 

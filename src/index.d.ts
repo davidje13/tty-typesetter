@@ -15,6 +15,8 @@ declare module 'tty-typesetter' {
 		softHyphens?: boolean;
 		/** apply a crude line wrapping algorithm based on spaces and soft hyphens (defaults to `true`) */
 		niceWrap?: boolean;
+		/** avoid wrapping inside grapheme clusters, even if they are not supported by the terminal (defaults to `true`) */
+		atomicGraphemeClusters?: boolean | 'if-supported';
 		/** replace tabs with spaces using this tab size (set to -1 to disable) (defaults to `8`) */
 		tabSize?: number;
 		/** beginning column for first line, for tab measurements (defaults to `0`) */

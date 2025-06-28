@@ -150,6 +150,9 @@ ts.typeset(message, {
   // apply a crude line wrapping algorithm based on spaces and soft hyphens
   niceWrap: true,
 
+  // avoid wrapping inside grapheme clusters, even if they are not supported by the terminal
+  atomicGraphemeClusters: true, // also accepts 'if-supported'
+
   // replace tabs with spaces using this tab size (set to -1 to disable)
   tabSize: 8,
 
