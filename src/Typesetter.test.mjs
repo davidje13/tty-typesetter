@@ -317,19 +317,6 @@ describe('Typesetter', () => {
 						],
 					},
 					{
-						name: 'breaks up grapheme clusters in terminals which would render them strangely',
-						environment: APPLE_TERMINAL,
-						input: '👨‍👩‍👧‍👦 🧓🏽 🇬🇧',
-						sizes: [[30, '👨👩👧👦 \uD83E\uDDD3\u200C\uD83C\uDFFD 🇬\u200C🇧']],
-					},
-					{
-						name: 'does not breaks up grapheme clusters if splitUnsupportedGraphemeClusters is false',
-						environment: APPLE_TERMINAL,
-						input: '👨‍👩‍👧‍👦 🧓🏽 🇬🇧',
-						options: { splitUnsupportedGraphemeClusters: false },
-						sizes: [[30, '👨‍👩‍👧‍👦 🧓🏽 🇬🇧']],
-					},
-					{
 						name: 'ignores ANSI escape sequences for line wrapping',
 						input: 'this is \x1b[32mgreen\x1b[0m text',
 						sizes: [[14, 'this is \x1b[32mgreen\x1b[0m \ntext']],
@@ -475,6 +462,26 @@ describe('Typesetter', () => {
 				const ts = new Typesetter(APPLE_TERMINAL);
 				const actual = ts.typeset('A hut (\uD83D\uDED6)', { columnLimit: 100 });
 				expect([...actual], equals(['A hut (\uD83D\uDED6)']));
+			});
+		});
+
+		describe('grapheme clusters', () => {
+			it('breaks up grapheme clusters in terminals which would render them strangely', () => {
+				const ts = new Typesetter(APPLE_TERMINAL);
+				const actual = ts.typeset('👨‍👩‍👧‍👦 🧓🏽 🇬🇧', { columnLimit: 100 });
+				expect(
+					[...actual],
+					equals(['👨👩👧👦 \uD83E\uDDD3\u200C\uD83C\uDFFD 🇬\u200C🇧']),
+				);
+			});
+
+			it('does not break up grapheme clusters if splitUnsupportedGraphemeClusters is false', () => {
+				const ts = new Typesetter(APPLE_TERMINAL);
+				const actual = ts.typeset('👨‍👩‍👧‍👦 🧓🏽 🇬🇧', {
+					columnLimit: 100,
+					splitUnsupportedGraphemeClusters: false,
+				});
+				expect([...actual], equals(['👨‍👩‍👧‍👦 🧓🏽 🇬🇧']));
 			});
 		});
 	});
