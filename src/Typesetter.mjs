@@ -184,6 +184,7 @@ export class Typesetter {
 			columnLimit = globalThis.process?.stdout.columns ??
 				Number.POSITIVE_INFINITY,
 			padUnsupportedCharacters = true,
+			splitUnsupportedGraphemeClusters = true,
 			softHyphens = true,
 			niceWrap = true,
 			atomicGraphemeClusters = true,
@@ -252,6 +253,7 @@ export class Typesetter {
 			currentSegment._joinType = newJoinType;
 		}
 
+		let wasJoiner = false;
 		for (let i = 0; i < string.length; ++i) {
 			const codepoint = string.codePointAt(i);
 			if (codepoint >= 0x010000) {
@@ -271,6 +273,21 @@ export class Typesetter {
 				}
 				swallowLeadingSpace = false;
 			}
+			if (
+				splitUnsupportedGraphemeClusters &&
+				this._supportsGraphemeClusters === 1 &&
+				state.uncertainCodepoints > 1
+			) {
+				if (codepoint === 0x200d) {
+					wasJoiner = true;
+					continue;
+				}
+				if (!wasJoiner) {
+					c = '\u200C' + c;
+					cw += this.measureCodepoint(0x200c);
+				}
+			}
+			wasJoiner = false;
 			if (cw === null) {
 				if (codepoint === 0x0009 && tabSize > 0) {
 					yield* completeSegment(2);

@@ -317,6 +317,19 @@ describe('Typesetter', () => {
 						],
 					},
 					{
+						name: 'breaks up grapheme clusters in terminals which would render them strangely',
+						environment: APPLE_TERMINAL,
+						input: '👨‍👩‍👧‍👦 🧓🏽 🇬🇧',
+						sizes: [[30, '👨👩👧👦 \uD83E\uDDD3\u200C\uD83C\uDFFD 🇬\u200C🇧']],
+					},
+					{
+						name: 'does not breaks up grapheme clusters if splitUnsupportedGraphemeClusters is false',
+						environment: APPLE_TERMINAL,
+						input: '👨‍👩‍👧‍👦 🧓🏽 🇬🇧',
+						options: { splitUnsupportedGraphemeClusters: false },
+						sizes: [[30, '👨‍👩‍👧‍👦 🧓🏽 🇬🇧']],
+					},
+					{
 						name: 'ignores ANSI escape sequences for line wrapping',
 						input: 'this is \x1b[32mgreen\x1b[0m text',
 						sizes: [[14, 'this is \x1b[32mgreen\x1b[0m \ntext']],

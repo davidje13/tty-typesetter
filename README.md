@@ -144,6 +144,9 @@ ts.typeset(message, {
   // add implicit spaces after emoji which can bleed into the next character if the terminal advances only 1 character
   padUnsupportedCharacters: true,
 
+  // split grapheme clusters if they would cause unexpected behaviour in the terminal
+  splitUnsupportedGraphemeClusters: true,
+
   // omit soft hyphens from output unless they are at a wrap point
   softHyphens: true,
 
@@ -222,10 +225,14 @@ terminal believes the 2 unicode characters `\U1f9d3` (older adult) and `\U1f3fd`
 (skin tone modifier) will be printed separately, occupying 2 cells each. But
 when the font actually renders the text, they are combined into a single glyph.
 
-TTY Typesetter does not currently attempt to fix this, but even if/when it does,
-this introduces an artificial limit on the line width which cannot be fixed
-(because the terminal will soft wrap the line once it believes it is too long,
-even if the font can render the line in less space.
+Fixing the alignment introduces an artificial limit on the line width (because
+the terminal will soft wrap the line once it believes it is too long, even if
+the font can render the line in less space.
+
+`tty-typesetter` instead takes the approach of intentionally breaking up these
+grapheme clusters if the terminal would exhibit this behaviour, making them
+behave instead like terminals which do not support grapheme clusters at all.
+This can be configured with `splitUnsupportedGraphemeClusters`.
 
 Some terminals fully support grapheme clusters (e.g. kitty), and some support
 them via the "Mode 2027" proposal.

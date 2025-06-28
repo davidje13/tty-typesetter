@@ -11,6 +11,8 @@ declare module 'tty-typesetter' {
 		columnLimit?: number;
 		/** add implicit spaces after emoji which can bleed into the next character if the terminal advances only 1 character (defaults to `true`) */
 		padUnsupportedCharacters?: boolean;
+		/** split grapheme clusters if they would cause unexpected behaviour in the terminal (defaults to `true`) */
+		splitUnsupportedGraphemeClusters?: boolean;
 		/** omit soft hyphens from output unless they are at a wrap point (defaults to `true`) */
 		softHyphens?: boolean;
 		/** apply a crude line wrapping algorithm based on spaces and soft hyphens (defaults to `true`) */
