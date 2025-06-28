@@ -1,6 +1,6 @@
 {
 	"name": "tty-typesetter",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"description": "terminal typesetting with real world measurements of character advance widths",
 	"private": true,
 	"main": "index.mjs",
