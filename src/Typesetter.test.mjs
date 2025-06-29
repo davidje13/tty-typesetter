@@ -567,7 +567,21 @@ describe('Typesetter', () => {
 				expect(metadata.column, equals(0));
 			});
 
-			it('includes initial column if no newlines appear', () => {
+			it('returns beginColumn for blank input', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset('', {
+					beginColumn: 4,
+					columnLimit: 10,
+					outputMetadata: metadata,
+				});
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(4));
+			});
+
+			it('includes beginColumn if no newlines appear', () => {
 				const ts = new Typesetter({});
 				const metadata = {};
 				const lineGenerator = ts.typeset('foo', {
@@ -583,15 +597,47 @@ describe('Typesetter', () => {
 				expect(lineGenerator.next().done, isTrue());
 				expect(metadata.linesAdvanced, equals(0));
 				expect(metadata.column, equals(7));
+			});
 
-				const lineGeneratorBlank = ts.typeset('', {
-					beginColumn: 4,
+			it('includes wrapColumn for subsequent lines', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset('foo\nbar', {
+					beginColumn: 0,
+					wrapColumn: 4,
 					columnLimit: 10,
 					outputMetadata: metadata,
 				});
 
-				expect(lineGeneratorBlank.next().done, isTrue());
+				expect(lineGenerator.next().value, equals('foo\n'));
 				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(3));
+
+				expect(lineGenerator.next().value, equals('bar'));
+				expect(metadata.linesAdvanced, equals(1));
+				expect(metadata.column, equals(7));
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(1));
+				expect(metadata.column, equals(7));
+			});
+
+			it('includes wrapColumn if content ends with a newline', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset('foo\n', {
+					beginColumn: 2,
+					wrapColumn: 4,
+					columnLimit: 10,
+					outputMetadata: metadata,
+				});
+
+				expect(lineGenerator.next().value, equals('foo\n'));
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(5));
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(1));
 				expect(metadata.column, equals(4));
 			});
 		});
