@@ -407,11 +407,9 @@ export class Typesetter {
 			currentSegment._size += cw;
 		}
 		yield* completeSegment(0);
+		outputMetadata.column = column;
 		if (currentLine.length > 0) {
-			outputMetadata.column = column;
 			yield currentLine.join('');
-		} else {
-			outputMetadata.column = 0;
 		}
 	}
 }

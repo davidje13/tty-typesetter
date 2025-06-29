@@ -39,6 +39,11 @@ describe('Typesetter', () => {
 			expect(ts.measureString('\uD83D\uDED6'), equals(2));
 		});
 
+		it('returns 0 if given no input', () => {
+			const ts = new Typesetter({});
+			expect(ts.measureString(''), equals(0));
+		});
+
 		it('ignores ANSI escapes', () => {
 			const ts = new Typesetter({});
 			expect(ts.measureString('foo \x1b[0m bar'), equals(8));
@@ -393,6 +398,11 @@ describe('Typesetter', () => {
 			},
 		);
 
+		it('returns no lines if given no input', () => {
+			const ts = new Typesetter({});
+			expect([...ts.typeset('')], equals([]));
+		});
+
 		describe('tabs', () => {
 			it('replaces tabs with spaces', () => {
 				const ts = new Typesetter({});
@@ -555,6 +565,34 @@ describe('Typesetter', () => {
 				expect(lineGenerator.next().done, isTrue());
 				expect(metadata.linesAdvanced, equals(0));
 				expect(metadata.column, equals(0));
+			});
+
+			it('includes initial column if no newlines appear', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset('foo', {
+					beginColumn: 4,
+					columnLimit: 10,
+					outputMetadata: metadata,
+				});
+
+				expect(lineGenerator.next().value, equals('foo'));
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(7));
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(7));
+
+				const lineGeneratorBlank = ts.typeset('', {
+					beginColumn: 4,
+					columnLimit: 10,
+					outputMetadata: metadata,
+				});
+
+				expect(lineGeneratorBlank.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(4));
 			});
 		});
 	});
