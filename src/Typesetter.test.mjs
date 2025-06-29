@@ -565,6 +565,11 @@ describe('Typesetter', () => {
 			expect(ts.typesetLine('foo\nbar'), equals('foo bar'));
 		});
 
+		it('returns a blank string if given no input', () => {
+			const ts = new Typesetter({});
+			expect(ts.typesetLine(''), equals(''));
+		});
+
 		it('adds spaces after unsupported characters', () => {
 			const ts = new Typesetter(VSCODE100);
 			expect(

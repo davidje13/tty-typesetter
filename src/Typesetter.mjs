@@ -189,7 +189,7 @@ export class Typesetter {
 		if (lines.length > 1) {
 			throw new Error('internal error: typesetLine generated multiple lines');
 		}
-		return lines[0];
+		return lines[0] ?? '';
 	}
 
 	*typeset(
