@@ -1,5 +1,6 @@
 declare module 'tty-typesetter' {
-	type State = unique symbol & { uncertainCodepoints: number };
+	const PrivateState: unique symbol;
+	type State = typeof PrivateState & { uncertainCodepoints: number };
 
 	interface StateOptions {
 		/** skip ANSI escape sequences: return a width of 0 for contained characters (defaults to `true`) */
@@ -28,7 +29,7 @@ declare module 'tty-typesetter' {
 	}
 
 	export class Typesetter {
-		constructor(env?: Record<string, string>);
+		constructor(env?: Record<string, string | undefined>);
 
 		supportsGraphemeClusters(): boolean;
 
@@ -46,6 +47,6 @@ declare module 'tty-typesetter' {
 			options?: StateOptions,
 		): (char: string | number) => number;
 
-		*typeset(string: string, options?: TypesetOptions): Generator<string>;
+		typeset(string: string, options?: TypesetOptions): Generator<string>;
 	}
 }
