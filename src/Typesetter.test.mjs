@@ -484,6 +484,102 @@ describe('Typesetter', () => {
 				expect([...actual], equals(['👨‍👩‍👧‍👦 🧓🏽 🇬🇧']));
 			});
 		});
+
+		describe('outputMetadata', () => {
+			it('populates cursor location as lines are returned', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset(
+					'a message which wraps, and has an emoji \uD83D\uDED6',
+					{ columnLimit: 12, outputMetadata: metadata },
+				);
+
+				expect(lineGenerator.next().value, equals('a message \n'));
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(10));
+
+				expect(lineGenerator.next().value, equals('which wraps,\n'));
+				expect(metadata.linesAdvanced, equals(1));
+				expect(metadata.column, equals(12));
+
+				expect(lineGenerator.next().value, equals('and has an \n'));
+				expect(metadata.linesAdvanced, equals(2));
+				expect(metadata.column, equals(11));
+
+				expect(lineGenerator.next().value, equals('emoji \uD83D\uDED6'));
+				expect(metadata.linesAdvanced, equals(3));
+				expect(metadata.column, equals(8));
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(3));
+				expect(metadata.column, equals(8));
+			});
+
+			it('includes explicit newlines', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset('line 1\nline 2\n', {
+					columnLimit: 10,
+					outputMetadata: metadata,
+				});
+
+				expect(lineGenerator.next().value, equals('line 1\n'));
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(6));
+
+				expect(lineGenerator.next().value, equals('line 2\n'));
+				expect(metadata.linesAdvanced, equals(1));
+				expect(metadata.column, equals(6));
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(2));
+				expect(metadata.column, equals(0));
+			});
+
+			it('includes explicit carriage returns', () => {
+				const ts = new Typesetter({});
+				const metadata = {};
+				const lineGenerator = ts.typeset('line 1\rline 2\r', {
+					columnLimit: 10,
+					outputMetadata: metadata,
+				});
+
+				expect(lineGenerator.next().value, equals('line 1\r'));
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(6));
+
+				expect(lineGenerator.next().value, equals('line 2\r'));
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(6));
+
+				expect(lineGenerator.next().done, isTrue());
+				expect(metadata.linesAdvanced, equals(0));
+				expect(metadata.column, equals(0));
+			});
+		});
+	});
+
+	describe('typesetLine', () => {
+		it('replaces newlines with spaces and returns a single string', () => {
+			const ts = new Typesetter({});
+			expect(ts.typesetLine('foo\nbar'), equals('foo bar'));
+		});
+
+		it('adds spaces after unsupported characters', () => {
+			const ts = new Typesetter(VSCODE100);
+			expect(
+				ts.typesetLine('A hut (\uD83D\uDED6)'),
+				equals('A hut (\uD83D\uDED6 )'),
+			);
+		});
+
+		it('populates outputMetadata', () => {
+			const ts = new Typesetter({});
+			const metadata = {};
+			ts.typesetLine('foo\nbar', { outputMetadata: metadata });
+			expect(metadata.linesAdvanced, equals(0));
+			expect(metadata.column, equals(7));
+		});
 	});
 });
 

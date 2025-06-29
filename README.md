@@ -50,6 +50,17 @@ for (const line of ts.typeset(message)) {
 }
 ```
 
+If you do not need line wrapping but want other typesetting features (such as
+normalisation of emoji advance widths), you can use the simpler `typesetLine`
+API, which will replace all newlines with spaces and return a single string:
+
+```js
+process.stdout.write(ts.typesetLine('My message'));
+```
+
+`typesetLine` accepts all the options which `typeset` accepts (see below),
+except `columnLimit`, `niceWrap`, and `wrapColumn`.
+
 ### Measuring
 
 ```js
@@ -164,6 +175,9 @@ ts.typeset(message, {
 
   // beginning column for subsequent lines (defaults to beginColumn)
   wrapColumn: 0,
+
+  // see below for an explanation of metadata
+  outputMetadata: {},
 });
 ```
 
@@ -187,6 +201,32 @@ for (const line of ts.typeset(message, {
 })) {
   process.stdout.write('  ' + line);
 }
+```
+
+## `outputMetadata`
+
+When typesetting, it can be useful to know the cursor location. It is possible
+to use `measureString` on the lines returned by `typeset`, but this duplicates
+work which has already been done by the typesetting algorithm. A more efficient
+option is to use the `outputMetadata` to get the cursor location at the end of
+each line, and at the end of the whole string:
+
+```js
+const metadata = {};
+for (const line of ts.typeset(message, { outputMetadata: metadata })) {
+  process.stdout.write(line);
+  // metadata.column & metadata.linesAdvanced store the cursor location
+  // at the end of the current line (excluding any trailing \r or \n)
+}
+// metadata.column & metadata.linesAdvanced store the cursor location
+// at the end of the message (including any trailing \r or \n)
+```
+
+If you are using TypeScript, you will need to initialise `metadata` with dummy
+values (these will be ignored):
+
+```ts
+const metadata = { column: 0, linesAdvanced: 0 };
 ```
 
 ## Supported terminals

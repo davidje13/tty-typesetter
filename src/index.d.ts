@@ -7,6 +7,11 @@ declare module 'tty-typesetter' {
 		skipAnsi?: boolean;
 	}
 
+	interface Metadata {
+		linesAdvanced: number;
+		column: number;
+	}
+
 	interface TypesetOptions extends StateOptions {
 		/** add hard line wraps if lines are longer than this (defaults to `process.stdout.columns`) */
 		columnLimit?: number;
@@ -26,6 +31,17 @@ declare module 'tty-typesetter' {
 		beginColumn?: number;
 		/** beginning column for subsequent lines (defaults to `beginColumn`) */
 		wrapColumn?: number;
+
+		/**
+		 * An object to populate with metadata about the cursor position while typesetting.
+		 *
+		 * As each line is returned, this will indicate the location of the cursor just before the final `\r` or `\n`.
+		 *
+		 * After all lines have been returned, this will indicate the final location of the cursor (after any final `\r` or `\n`).
+		 *
+		 * The object does not need to be initialised when passed in, and any existing values are ignored.
+		 */
+		outputMetadata?: Metadata;
 	}
 
 	export class Typesetter {
@@ -48,5 +64,10 @@ declare module 'tty-typesetter' {
 		): (char: string | number) => number;
 
 		typeset(string: string, options?: TypesetOptions): Generator<string>;
+
+		typesetLine(
+			string: string,
+			options?: Omit<TypesetOptions, 'columnLimit' | 'niceWrap' | 'wrapColumn'>,
+		): string;
 	}
 }

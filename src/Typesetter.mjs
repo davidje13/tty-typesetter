@@ -178,6 +178,20 @@ export class Typesetter {
 		};
 	}
 
+	typesetLine(string, options = {}) {
+		const lineGenerator = this.typeset(string.replaceAll(/[\r\n]+/g, ' '), {
+			...options,
+			columnLimit: Number.POSITIVE_INFINITY,
+			niceWrap: false,
+			wrapColumn: 0,
+		});
+		const lines = [...lineGenerator];
+		if (lines.length > 1) {
+			throw new Error('internal error: typesetLine generated multiple lines');
+		}
+		return lines[0];
+	}
+
 	*typeset(
 		string,
 		{
@@ -191,6 +205,7 @@ export class Typesetter {
 			tabSize = 8,
 			beginColumn = 0,
 			wrapColumn = beginColumn,
+			outputMetadata = {},
 			...options
 		} = {},
 	) {
@@ -217,16 +232,22 @@ export class Typesetter {
 		let swallowLeadingSpace = false;
 		let emergencyWrap = false;
 		let column = beginColumn;
+		outputMetadata.linesAdvanced = 0;
 
-		function completeLine(trailer) {
+		function* completeLine(trailer) {
+			outputMetadata.column = column;
 			if (!currentLine.length) {
-				return trailer;
+				yield trailer;
+			} else if (currentLine.length === 1) {
+				yield currentLine[0] + trailer;
+			} else {
+				yield currentLine.join('') + trailer;
 			}
-			const ln =
-				(currentLine.length === 1 ? currentLine[0] : currentLine.join('')) +
-				trailer;
 			currentLine.length = 0;
-			return ln;
+			if (trailer === '\n') {
+				++outputMetadata.linesAdvanced;
+			}
+			column = wrapColumn;
 		}
 
 		function* completeSegment(newJoinType) {
@@ -236,8 +257,7 @@ export class Typesetter {
 				} else if (currentSegment._joinType === 3) {
 					currentLine.push('-');
 				}
-				yield completeLine('\n');
-				column = wrapColumn;
+				yield* completeLine('\n');
 			}
 			if (currentSegment._parts.length > 0) {
 				currentLine.push(
@@ -304,13 +324,11 @@ export class Typesetter {
 					c = ' '.repeat(cw);
 				} else if (codepoint === 0x000a) {
 					yield* completeSegment(0);
-					yield completeLine('\n');
-					column = wrapColumn;
+					yield* completeLine('\n');
 					continue;
 				} else if (codepoint === 0x000d) {
 					yield* completeSegment(0);
-					yield completeLine('\r');
-					column = wrapColumn;
+					yield* completeLine('\r');
 					continue;
 				} else {
 					cw = 0;
@@ -331,8 +349,7 @@ export class Typesetter {
 						currentSegment._size += cw;
 						yield* completeSegment(2);
 					} else {
-						yield completeLine('\n');
-						column = wrapColumn;
+						yield* completeLine('\n');
 						swallowLeadingSpace = true;
 					}
 					continue;
@@ -347,8 +364,7 @@ export class Typesetter {
 			}
 			if (emergencyWrap) {
 				if (column + cw > columnLimit) {
-					yield completeLine('\n');
-					column = wrapColumn;
+					yield* completeLine('\n');
 				}
 				currentLine.push(c);
 				column += cw;
@@ -372,12 +388,11 @@ export class Typesetter {
 					currentLine.push(
 						currentSegment._parts.splice(0, currentSegment._breakI).join(''),
 					);
-					yield completeLine('\n');
+					yield* completeLine('\n');
 					currentLine.push(currentSegment._parts.join(''));
-					column = wrapColumn + currentSegment._size - currentSegment._breakS;
+					column += currentSegment._size - currentSegment._breakS;
 					if (column >= columnLimit) {
-						yield completeLine('\n');
-						column = wrapColumn;
+						yield* completeLine('\n');
 					}
 					currentLine.push(c);
 					column += cw;
@@ -393,7 +408,10 @@ export class Typesetter {
 		}
 		yield* completeSegment(0);
 		if (currentLine.length > 0) {
+			outputMetadata.column = column;
 			yield currentLine.join('');
+		} else {
+			outputMetadata.column = 0;
 		}
 	}
 }
