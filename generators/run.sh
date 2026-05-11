@@ -6,12 +6,16 @@ DATA_DIR="$GEN_DIR/../data"
 
 mkdir -p "$DATA_DIR";
 
-[ -f "$DATA_DIR/grapheme-clusters.mjs" ] || "$GEN_DIR/gen-grapheme-clusters.mjs" "17.0.0" > "$DATA_DIR/grapheme-clusters.mjs";
+VERSIONS="12.1 13.0 14.0 15.1 16.0 17.0";
+
+for VER in $VERSIONS; do
+	[ -f "$DATA_DIR/grapheme-clusters-$VER.mjs" ] || "$GEN_DIR/gen-grapheme-clusters.mjs" "$VER.0" > "$DATA_DIR/grapheme-clusters-$VER.mjs";
+done;
 
 #"$GEN_DIR/cam-kuhn.mjs" | "$GEN_DIR/tools/compress.mjs" > "$DATA_DIR/cam-kuhn.dat";
 #[ -f "$DATA_DIR/cam-05.0.dat" ] || "$GEN_DIR/cam.mjs" "5.0.0" > "$DATA_DIR/cam-05.0.dat";
 
-for VER in "12.1" "13.0" "14.0" "15.1" "16.0" "17.0"; do
+for VER in $VERSIONS; do
 	[ -f "$DATA_DIR/cam-$VER.dat" ] || "$GEN_DIR/cam.mjs" "$VER.0" > "$DATA_DIR/cam-$VER.dat";
 done;
 

@@ -18,6 +18,7 @@ import {
 	loadUnicodeStringData,
 } from '../dev-utils/unicode-data.mjs';
 import { compressedSequences } from '../data/grapheme-clusters.mjs';
+import { getUnicodeBasePath, getUnicodeEmojiBasePath } from './urls.mjs';
 
 const unicodeVersion = process.argv[2];
 if (!unicodeVersion) {
@@ -27,13 +28,14 @@ if (!unicodeVersion) {
 
 const uGeneralCategory = readOrdered(
 	await loadUnicodeRangeData(
-		`https://www.unicode.org/Public/${unicodeVersion}/ucd/extracted/DerivedGeneralCategory.txt`,
+		getUnicodeBasePath(unicodeVersion) +
+			'/ucd/extracted/DerivedGeneralCategory.txt',
 	),
 );
 
 const uEastAsianWidth = readOrdered(
 	await loadUnicodeRangeData(
-		`https://www.unicode.org/Public/${unicodeVersion}/ucd/EastAsianWidth.txt`,
+		getUnicodeBasePath(unicodeVersion) + '/ucd/EastAsianWidth.txt',
 	),
 );
 
@@ -45,14 +47,14 @@ for (let char = 0x000000; char < codepointCount; ++char) {
 }
 
 // Emoji sequences
-const shortUV = /^(\d+\.\d+)\..*$/.exec(unicodeVersion)[1];
+const emojiBase = getUnicodeEmojiBasePath(unicodeVersion);
 
 const uEmojiSequences = await loadUnicodeStringData(
-	`https://www.unicode.org/Public/emoji/${shortUV}/emoji-sequences.txt`,
+	emojiBase + '/emoji-sequences.txt',
 );
 
 const uEmojiZwjSequences = await loadUnicodeStringData(
-	`https://www.unicode.org/Public/emoji/${shortUV}/emoji-zwj-sequences.txt`,
+	emojiBase + '/emoji-zwj-sequences.txt',
 );
 
 const known = new Set();

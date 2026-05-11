@@ -8,13 +8,19 @@ const DATA_DIR = join(SELF_DIR, '..', 'data');
 export async function* readAllDataFiles() {
 	for (const datFile of (await readdir(DATA_DIR)).sort()) {
 		if (datFile.endsWith('.dat')) {
-			yield await readDataFile(datFile);
+			try {
+				yield await readDataFile(datFile);
+			} catch (err) {
+				throw new Error(`Failed to read ${datFile}`, { cause: err });
+			}
 		}
 	}
 }
 
+export const getDataFilePath = (datFile) => join(DATA_DIR, datFile);
+
 export async function readDataFile(datFile) {
-	const datFilePath = join(DATA_DIR, datFile);
+	const datFilePath = getDataFilePath(datFile);
 	const data = await readFile(datFilePath, { encoding: 'utf-8' });
 	const lines = data.trim().split('\n');
 	const packedTable = lines.pop();
@@ -30,7 +36,7 @@ export async function readDataFile(datFile) {
 		datFile,
 		datFilePath,
 		mjsFile,
-		mjsFilePath: join(DATA_DIR, mjsFile),
+		mjsFilePath: getDataFilePath(mjsFile),
 		isTTY: datFile.startsWith('tty-'),
 		rawKeyValues: lines,
 		name: keyValues.get('name') || datFile.replace(/\.dat$/, ''),

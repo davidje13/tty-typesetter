@@ -19,6 +19,7 @@ import {
 } from '../../dev-utils/readers.mjs';
 import { compressedSequences } from '../../data/grapheme-clusters.mjs';
 import { notesTable } from '../notes.mjs';
+import { getUnicodeBasePath } from '../urls.mjs';
 
 const SELF_DIR = dirname(new URL(import.meta.url).pathname);
 const ANALYSIS_DIR = join(SELF_DIR, '..', '..', 'analysis');
@@ -28,15 +29,16 @@ const shortUV = /^(\d+\.\d+)\..*$/.exec(unicodeVersion)[1];
 
 // https://unicode.org/reports/tr18/#General_Category_Property
 const uGeneralCategoryTable = await loadUnicodeRangeData(
-	`https://www.unicode.org/Public/${unicodeVersion}/ucd/extracted/DerivedGeneralCategory.txt`,
+	getUnicodeBasePath(unicodeVersion) +
+		'/ucd/extracted/DerivedGeneralCategory.txt',
 );
 
 const uBlockTable = await loadUnicodeRangeData(
-	`https://www.unicode.org/Public/${unicodeVersion}/ucd/Blocks.txt`,
+	getUnicodeBasePath(unicodeVersion) + '/ucd/Blocks.txt',
 );
 
 const uAgeTable = await loadUnicodeRangeData(
-	`https://www.unicode.org/Public/${unicodeVersion}/ucd/DerivedAge.txt`,
+	getUnicodeBasePath(unicodeVersion) + '/ucd/DerivedAge.txt',
 );
 
 const uGeneralCategory = readRandomAccess(uGeneralCategoryTable);

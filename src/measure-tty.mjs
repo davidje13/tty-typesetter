@@ -1,6 +1,9 @@
 #!/usr/bin/env -S node
 
-import { compressedSequences } from '../data/grapheme-clusters.mjs';
+import {
+	compressedSequences,
+	sequencesVersion,
+} from '../data/grapheme-clusters.mjs';
 import { codepointCount, UNSUPPORTED } from './constants.mjs';
 import {
 	codepointsToString,
@@ -125,6 +128,7 @@ for (const key of [
 }
 process.stdout.write(`platform=${process.platform}\n`);
 process.stdout.write(`sequences=${sequenceSupport}\n`);
+process.stdout.write(`sequences-baseline=${sequencesVersion}\n`);
 process.stdout.write(
 	`time=${((tmAfterCodepoints - tmBeforeCodepoints) * 0.001).toFixed(3)}s (batch=${batchSize})\n`,
 );

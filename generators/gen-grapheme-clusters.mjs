@@ -3,20 +3,22 @@
 import { KEY_PART } from '../src/cluster-key.mjs';
 import { makeGraphemeClusterKey } from '../src/read-grapheme-clusters.mjs';
 import { loadUnicodeStringData } from '../dev-utils/unicode-data.mjs';
+import { getUnicodeEmojiBasePath } from './urls.mjs';
 
 const unicodeVersion = process.argv[2];
 if (!unicodeVersion) {
-	process.stderr.write('Must specify Unicode version to use (e.g. 16.0.0)\n');
+	process.stderr.write('Must specify Unicode version to use (e.g. 17.0.0)\n');
 	process.exit(1);
 }
-const shortUV = /^(\d+\.\d+)\..*$/.exec(unicodeVersion)[1];
+
+const emojiBase = getUnicodeEmojiBasePath(unicodeVersion);
 
 const uEmojiSequences = await loadUnicodeStringData(
-	`https://www.unicode.org/Public/emoji/${shortUV}/emoji-sequences.txt`,
+	emojiBase + '/emoji-sequences.txt',
 );
 
 const uEmojiZwjSequences = await loadUnicodeStringData(
-	`https://www.unicode.org/Public/emoji/${shortUV}/emoji-zwj-sequences.txt`,
+	emojiBase + '/emoji-zwj-sequences.txt',
 );
 
 const allSequences = new Set();
@@ -24,18 +26,16 @@ let maxLength = 0;
 
 for (const [seq] of uEmojiSequences) {
 	maxLength = Math.max(maxLength, seq.length);
-	const key = makeGraphemeClusterKey(seq);
 	// single-character sequences already captured as regular characters
 	if (seq.length > 1) {
-		allSequences.add(key);
+		allSequences.add(makeGraphemeClusterKey(seq));
 	}
 }
 
 for (const [seq] of uEmojiZwjSequences) {
 	maxLength = Math.max(maxLength, seq.length);
-	const key = makeGraphemeClusterKey(seq);
 	if (seq.length > 1) {
-		allSequences.add(key);
+		allSequences.add(makeGraphemeClusterKey(seq));
 	}
 }
 
@@ -118,7 +118,9 @@ process.stdout.write(
 	`export const compressedSequences=${JSON.stringify(combined.join(' '))};\n`,
 );
 
-process.stderr.write(`Longest grapheme cluster: ${maxLength} codepoints\n`);
+process.stderr.write(
+	`Unicode ${unicodeVersion}: Longest grapheme cluster: ${maxLength} codepoints\n`,
+);
 
 function merge(a, b, joiner) {
 	return [...new Set([...a.split(joiner), ...b.split(joiner)])]

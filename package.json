@@ -6,6 +6,12 @@
 	"main": "index.mjs",
 	"bin": "bin.mjs",
 	"types": "index.d.ts",
+	"exports": {
+		".": {
+			"types": "./index.d.ts",
+			"default": "./index.mjs"
+		}
+	},
 	"scripts": {
 		"format": "prettier --write .",
 		"test": "lean-test src generators",
