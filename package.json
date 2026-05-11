@@ -36,9 +36,9 @@
 	},
 	"homepage": "https://github.com/davidje13/tty-typesetter#readme",
 	"devDependencies": {
-		"@rollup/plugin-terser": "0.4.x",
+		"@rollup/plugin-terser": "1.x",
 		"lean-test": "2.x",
-		"prettier": "3.5.3",
+		"prettier": "3.8.3",
 		"rollup": "4.x"
 	}
 }
