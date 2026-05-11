@@ -1,4 +1,4 @@
-import { data as cam16_0 } from '../data/cam-16.0.mjs';
+import { data as cam17_0 } from '../data/cam-17.0.mjs';
 import { data as linux } from '../data/tty-linux--.mjs';
 import { data as xterm } from '../data/tty-xterm--.mjs';
 import { data as kitty } from '../data/tty-kitty.mjs';
@@ -99,8 +99,8 @@ const sources = [
 		_require: [['TERM', 'xterm']],
 	},
 
-	// fallback: use Unicode 16 definitions (which generally over-estimate character widths in real terminals)
-	{ _table: cam16_0, _fontSequences: false, _require: [] },
+	// fallback: use Unicode-derived definitions (which generally over-estimate character widths in real terminals)
+	{ _table: cam17_0, _fontSequences: false, _require: [] },
 ];
 
 export function loadTable(env) {

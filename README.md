@@ -243,8 +243,8 @@ This project currently has data for:
 - rxvt-unicode
 - xterm
 - Emacs ansi-eterm (eterm)
-- Unicode 16, following the rules originally defined by Markus Kuhn for
-  `wcwidth` (used as a fallback if the terminal is not recognised)
+- Unicode 12–17, following the rules originally defined by Markus Kuhn for
+  `wcwidth` (17 is used as a fallback if the terminal is not recognised)
 
 You can find a summary of the behaviours of these terminals
 [here](./analysis/summary.md).
