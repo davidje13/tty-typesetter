@@ -2,6 +2,7 @@
 
 import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { merge } from '../../src/unpack.mjs';
 import { codepointCount, IGNORE, UNSUPPORTED } from '../../src/constants.mjs';
 import {
@@ -21,7 +22,7 @@ import { compressedSequences } from '../../data/grapheme-clusters.mjs';
 import { notesTable } from '../notes.mjs';
 import { getUnicodeBasePath } from '../urls.mjs';
 
-const SELF_DIR = dirname(new URL(import.meta.url).pathname);
+const SELF_DIR = dirname(fileURLToPath(import.meta.url));
 const ANALYSIS_DIR = join(SELF_DIR, '..', '..', 'analysis');
 
 const unicodeVersion = '16.0.0';

@@ -1,8 +1,9 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { unpack } from '../src/unpack.mjs';
 
-const SELF_DIR = dirname(new URL(import.meta.url).pathname);
+const SELF_DIR = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(SELF_DIR, '..', 'data');
 
 export async function* readAllDataFiles() {
